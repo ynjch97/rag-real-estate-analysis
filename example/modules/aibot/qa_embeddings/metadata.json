@@ -1,0 +1,18 @@
+{
+  "total_files": 7,
+  "processed_files": 7,
+  "folders": [
+    "."
+  ],
+  "total_questions": 7,
+  "file_question_counts": {
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/jp_sample_4.md": 1,
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/jp_sample_1.md": 1,
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/sample_data_1.md": 1,
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/jp_sample_5.md": 1,
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/jp_sample_2.md": 1,
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/sample_data_2.md": 1,
+    "/Users/jshan/Konkuk/prompt_engineering/week_11_14/modules/aibot/docs/md/jp_sample_3.md": 1
+  },
+  "last_update": "2025-05-17T13:49:50.126933"
+}

@@ -1,0 +1,35 @@
+* ConfigManager 클래스 함수 요약
+    - __init__(self, config_path: str = "config.ini")
+        설정 파일 경로를 초기화하고 설정을 로드합니다.
+        기본 경로는 "config.ini"입니다.
+
+    - load_config(self) -> None
+        설정 파일을 로드하고 필수 항목을 검증합니다.
+        파일이 없는 경우 기본 설정 파일을 생성합니다.
+        필수 섹션(openai, paths, model, prompt)과 키를 검증합니다.
+
+    - get_openai_config(self) -> Dict[str, str]
+        OpenAI API 키 설정을 딕셔너리 형태로 반환합니다.
+
+    - get_paths_config(self) -> Dict[str, Path]
+    - get_model_config(self) -> Dict[str, Any]
+        모델 관련 설정을 반환합니다:
+            model_name: 기본값 'gpt-4o'
+            temperature: 기본값 0.1
+            max_tokens: 기본값 1024
+            chunk_size: 기본값 1000
+            chunk_overlap: 기본값 200
+
+    - get_prompt_config(self) -> Dict[str, str]
+        프롬프트 관련 설정을 반환합니다.
+        'general' 키에 프롬프트 파일명이 저장됩니다.
+
+    - get_server_config(self) -> Dict[str, Any]
+        서버 관련 설정을 반환합니다:
+
+        host: 기본값 '0.0.0.0'
+        port: 기본값 5001
+
+    - validate_paths(self) -> None
+        모든 필요한 경로의 유효성을 검증합니다.
+        디렉토리가 존재하지 않을 경우 자동으로 생성합니다.
