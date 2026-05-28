@@ -212,6 +212,20 @@
 - `qa_bot.py` : FastAPI/CLI 형태로 질의응답 인터페이스를 제공하는 구조
 - `config_utils.py` : 설정 파일을 읽고 경로를 관리하는 방식
 
+### 8-2. 실행
+- `requirements.txt` : 이 프로젝트에 필요한 라이브러리 목록 
+``` bash
+cd "ragRealEstateAnalysis\example"
+python -m pip install -r requirements.txt # requirements.txt 안에 적힌 라이브러리들을 설치
+
+# Would you like to create a virtual environment with these packages to isolate your dependencies?
+# 해당 팝업에 Create 선택 후 Python 선택, requirements.txt 선택하고 라이브러리 설치
+```
+- 오류 발생 시 아래와 같이 진행
+``` bash
+
+```
+
 ## 9. 프로젝트 구조 및 환경 설정
 
 ### 9-1. 역할 분리
