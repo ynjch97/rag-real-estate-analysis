@@ -16,12 +16,21 @@ src/
     loaders.py              # JSONL 읽기
   embeddings/
     build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
-    vector_store.py         # FAISS 저장/로드/검색 helper
+    vector_store.py         # FAISS 저장/로드/검색 공통 래퍼
+  retrieval/
+    query_analyzer.py       # 질문에서 지역/정책 키워드/의도/기간 추출
 
 data/
+  sample/
+    policies.jsonl          # 정책 샘플 문서
+    news.jsonl              # 뉴스 샘플 문서
+    transactions.jsonl      # 거래별 아파트 매매 샘플 데이터
   indexes/
     policy_faiss/           # policies.jsonl로 만든 FAISS 인덱스
     news_faiss/             # news.jsonl로 만든 FAISS 인덱스
+
+tests/
+  test_query_analyzer.py     # 규칙 기반 분석기 테스트
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

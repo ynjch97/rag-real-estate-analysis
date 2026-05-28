@@ -364,8 +364,54 @@ python -m src.embeddings.build_index
 💾 News FAISS index saved to: D:\STUDY\git_ragRealEstateAnalysis\data\indexes\news_faiss
 ```
 
+### 10-3. 질문을 구조화하는 규칙 기반 분석기
+- 사용자 질문을 이후 검색/분석 모듈이 쓰기 쉬운 형태로 바꾸는 것
+- `query_analyzer.py`
+``` python
+# "이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘"
+# 이와 같은 입력을 아래 구조로 바꿈 (현재는 LLM 쓰지 말고 규칙으로)
+{
+    "region": "성동구",
+    "event_keyword": "금리 인상",
+    "intent": "policy_impact",
+    "property_type": "apartment",
+    "transaction_type": "sale",
+    "months_before": 6,
+    "months_after": 6,
+}
+```
+- 현재 동작
+  - 성동구, 광진구, 강남구 추출
+  - 금리 인상, 대출 규제, 공급 정책 규칙 추출
+  - policy_type을 interest_rate, loan_regulation, supply_policy로 분류
+  - 기본값: apartment, sale, 전후 6개월
+  - .to_dict()로 이후 workflow 입력에 바로 넘길 수 있음
+- 테스트 실행
+``` bash
+# pytest 설치
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -m pip install pytest
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -m pytest --version
+pytest 9.0.3
+
+# pytest 실행
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -m pytest tests/test_query_analyzer.py
+=========================================== test session starts ===========================================
+platform win32 -- Python 3.10.2, pytest-9.0.3, pluggy-1.6.0
+rootdir: D:\STUDY\git_ragRealEstateAnalysis
+plugins: anyio-4.13.0, langsmith-0.8.6
+collected 5 items 
+
+tests\test_query_analyzer.py ..... [100%]
+
+=========================================== 5 passed in 0.06s ===========================================
+```
 
 
 <!--
-codexAnswer.md => Phase 2. 정책/뉴스 FAISS 인덱스를 만든다
+1.
+codexAnswer.md => Phase 3. 질문 분석기를 단순 규칙으로 먼저 만든다
+
+
+2.
+README.md => 7-3. 컨텍스트 구성 전략
 -->
