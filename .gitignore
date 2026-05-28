@@ -8,3 +8,6 @@ __pycache__/
 
 # Virtual Environment
 .venv/
+
+# Codex Answer Files
+codexAnswer.md

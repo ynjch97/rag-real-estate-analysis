@@ -1,46 +1,49 @@
-# Repository Guidelines
+# 프로젝트 개발 규칙
 
-## Project Structure & Module Organization
+## 프로젝트 폴더 구조 규칙
 
 This repository is currently minimal and contains only the root `README.md`. As implementation is added, keep the layout predictable:
 
-- `src/`: application source code, RAG pipelines, data loaders, retrievers, and analysis modules.
-- `tests/`: automated tests mirroring the `src/` package structure.
-- `data/`: local sample inputs only; avoid committing large, private, or generated datasets.
-- `docs/`: design notes, architecture decisions, and usage examples.
-- `assets/`: static images, diagrams, or other non-code resources.
+- `src/`: 실제 프로그램 코드 (RAG, Retriever, Agent, 분석 로직)
+- `tests/`: 테스트 코드 (질문 분석 테스트, 시세 필터링 테스트)
+- `data/`: 샘플 데이터 저장
+- `docs/`: 설계 문서, 아키텍처 설명, 사용법
+- `assets/`: 이미지, 다이어그램, 정적 파일
 
 Place modules near the domain they support instead of creating broad utility files prematurely.
 
-## Build, Test, and Development Commands
+## 실행/테스트 명령어 규칙
 
 No build system or package manager is configured yet. Add commands when tooling is introduced. Recommended examples:
 
-- `python -m pytest`: run the full test suite.
-- `python -m pytest tests/test_retriever.py`: run a focused test file.
-- `python -m ruff check src tests`: lint Python code.
-- `python -m ruff format src tests`: format Python code.
+- `python -m pytest`: 전체 테스트 실행
+- `python -m pytest tests/test_retriever.py`: 특정 테스트만 실행
+- `python -m ruff check src tests`: 코드 스타일 검사
+- `python -m ruff format src tests`: 자동 코드 정리
 
 If another stack is adopted, document exact setup and execution commands in `README.md`.
 
-## Coding Style & Naming Conventions
+## 코딩 스타일 규칙
 
-Prefer clear, typed, modular code. For Python, use `snake_case.py` filenames, `snake_case` functions and variables, `PascalCase` classes, and 4-space indentation. Name public functions after the real estate or RAG concept they implement, for example `build_price_retriever`.
+- 파일명 : snake_case.py
+- 함수명 : snake_case
+- 클래스명 : PascalCase
+- 4-space indentation (4칸 들여쓰기를 사용)
 
-Use structured parsers and library APIs for documents, embeddings, and tabular data where possible. Keep configuration in explicit files or environment variables, not hard-coded paths.
+- 함수 이름을 실제 역할 기준으로 지을 것
+  - get_data() 보다는 retrieve_policy_documents()
+- 문서 파싱, 임베딩, CSV 처리 등은 검증된 라이브러리 사용
+- API 키를 코드에 직접 작성하지 말 것
 
-## Testing Guidelines
+## 테스트 코드 규칙
 
-Add tests for new data transformations, retrieval steps, prompt construction paths, and analysis rules. Use `tests/test_<module>.py` naming and descriptive test functions such as `test_filters_transactions_by_region`.
+- `tests/test_<module>.py`와 같은 명명 규칙을 따름
+- `test_filters_transactions_by_region`과 같이 설명적인 테스트 함수를 사용
+- 실제 개인정보 데이터는 쓰지 말 것
 
 Prefer small fixtures with anonymized or synthetic real estate records. Do not commit production data, API keys, model outputs containing private text, or large generated artifacts.
 
-## Commit & Pull Request Guidelines
+## 보안 및 설정 규칙
 
-The current history contains only `Initial commit`, so no detailed convention has emerged. Use short, imperative commit messages such as `Add transaction loader` or `Document local setup`.
-
-Pull requests should include a concise summary, testing performed, new configuration variables, and screenshots or sample outputs when behavior changes. Link related issues when available and call out data or model assumptions.
-
-## Security & Configuration Tips
-
-Keep secrets in environment variables or ignored local files. Document required variables with safe placeholders, for example `OPENAI_API_KEY=<your-key>`. Never commit raw property records, personal data, credentials, or paid API responses.
+- 비밀키는 환경 변수 사용 `OPENAI_API_KEY=<your-key>`
+- 부동산 실거래 원본, 개인정보, 유료 API 응답 등은 올리지 말 것
