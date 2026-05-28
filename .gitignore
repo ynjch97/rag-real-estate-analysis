@@ -1,4 +1,10 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
+
+# Environment Variables .env
+# OPENAI_API_KEY 등 비밀키 저장
 .env
+
+# Virtual Environment
+.venv/

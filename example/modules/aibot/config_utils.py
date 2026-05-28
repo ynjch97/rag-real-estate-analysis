@@ -7,7 +7,30 @@ class ConfigManager:
     def __init__(self, config_path: str = "config.ini"):
         self.config_path = config_path
         self.config = configparser.ConfigParser()
+        self.load_env()
         self.load_config()
+
+    def load_env(self) -> None:
+        """Load environment variables from a project .env file when present."""
+        config_path = Path(self.config_path).resolve()
+        candidates = [Path.cwd() / ".env", *[parent / ".env" for parent in config_path.parents]]
+
+        seen = set()
+        for env_path in candidates:
+            if env_path in seen or not env_path.exists():
+                continue
+
+            seen.add(env_path)
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    os.environ.setdefault(key, value)
 
     def load_config(self) -> None:
         """설정 파일 로드 및 필수 항목 검증"""
@@ -62,8 +85,14 @@ class ConfigManager:
 
     def get_openai_config(self) -> Dict[str, str]:
         """OpenAI 관련 설정 반환"""
+        api_key = self.config.get('openai', 'api_key').strip()
+        if api_key.startswith("${") and api_key.endswith("}"):
+            api_key = os.getenv(api_key[2:-1], "")
+        elif api_key.startswith("$"):
+            api_key = os.getenv(api_key[1:], "")
+
         return {
-            'api_key': self.config.get('openai', 'api_key')
+            'api_key': api_key
         }
 
     def get_paths_config(self) -> Dict[str, Path]:
