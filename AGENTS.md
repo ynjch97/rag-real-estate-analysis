@@ -10,6 +10,20 @@ This repository is currently minimal and contains only the root `README.md`. As 
 - `docs/`: 설계 문서, 아키텍처 설명, 사용법
 - `assets/`: 이미지, 다이어그램, 정적 파일
 
+```
+src/
+  data/
+    loaders.py              # JSONL 읽기
+  embeddings/
+    build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
+    vector_store.py         # FAISS 저장/로드/검색 helper
+
+data/
+  indexes/
+    policy_faiss/           # policies.jsonl로 만든 FAISS 인덱스
+    news_faiss/             # news.jsonl로 만든 FAISS 인덱스
+```
+
 Place modules near the domain they support instead of creating broad utility files prematurely.
 
 ## 실행/테스트 명령어 규칙

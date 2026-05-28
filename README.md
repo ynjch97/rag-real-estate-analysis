@@ -313,7 +313,6 @@ response
   - 프로젝트 구성 방식 / 폴더 구조 정리 / 코딩 스타일 / 코드 네이밍 규칙
   - AI 코딩 Agent / GitHub 관리 / API 키 보안
 
-
 ### 9-2. 역할 분리
 - 정책/뉴스 : FAISS 검색 대상 (벡터 검색)
 - 시세 : 정형 데이터 조회 대상 (조건 기반 필터링/시계열 조회)
@@ -326,3 +325,47 @@ response
 ### 9-3. 프로젝트 구조
 ```
 ```
+
+## 10. 개발 이력
+
+### 10-1. 샘플 데이터 생성
+``` plain
+data/sample/policies.jsonl
+data/sample/news.jsonl
+data/sample/transactions.jsonl
+```
+
+### 10-2. 정책/뉴스 FAISS 인덱스
+- JSONL을 읽어서 검색 가능한 FAISS 벡터 인덱스로 변환
+``` bash
+# FAISS 인덱스 저장 결과 폴더
+data/indexes/policy_faiss/
+data/indexes/news_faiss/
+```
+- `policies.jsonl`, `news.jsonl`을 읽어서 임베딩하고 저장하는 코드 필요
+  - `loaders.py` : `policies.jsonl`, `news.jsonl`을 LangChain Document로 변환
+  - `vector_store.py` : FAISS 생성/저장/로드 helper
+  - `build_index.py` : 정책/뉴스 FAISS 인덱스 생성 실행 파일
+- FAISS 인덱스 저장 실행
+``` bash
+# 실행 테스트
+python -m src.embeddings.build_index --dry-run
+
+Policy documents: 5
+News documents: 12
+Dry run only. FAISS indexes were not created.
+
+# index.faiss, index.pkl 생성하기
+python -m src.embeddings.build_index
+
+💾 Policy documents: 5
+💾 News documents: 12
+💾 Policy FAISS index saved to: D:\STUDY\git_ragRealEstateAnalysis\data\indexes\policy_faiss
+💾 News FAISS index saved to: D:\STUDY\git_ragRealEstateAnalysis\data\indexes\news_faiss
+```
+
+
+
+<!--
+codexAnswer.md => Phase 2. 정책/뉴스 FAISS 인덱스를 만든다
+-->
