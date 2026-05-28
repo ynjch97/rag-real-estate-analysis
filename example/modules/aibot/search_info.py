@@ -12,8 +12,8 @@ from typing import Dict, List, Optional, AsyncGenerator, Any
 from config_utils import ConfigManager
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage, HumanMessage
 
 class QuestionAnalyzer:
     def __init__(self, model_config, openai_config):

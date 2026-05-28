@@ -188,7 +188,10 @@ async def handle_query(request: QueryRequest):
         if "context_sources" in qa_result:
             response_data["context_sources"] = qa_result["context_sources"]
 
-        return response_data
+        return JSONResponse(
+            content=response_data,
+            media_type="application/json; charset=utf-8",
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"응답 생성 중 오류 발생: {str(e)}")
@@ -240,7 +243,7 @@ async def handle_query_stream(request: QueryStreamRequest):
     # 스트리밍 응답 반환
     return StreamingResponse(
         stream_response(),
-        media_type="application/x-ndjson"
+        media_type="application/x-ndjson; charset=utf-8"
     )
 
 # 세션 관리 엔드포인트

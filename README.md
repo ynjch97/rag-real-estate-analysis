@@ -263,6 +263,49 @@ aiosignal                1.4.0
 ===== 생략 =====
 ```
 
+### 8-3. example 실행
+``` bash
+# 실행은 반드시 이 폴더에서
+cd D:\STUDY\git_ragRealEstateAnalysis\example\modules\aibot
+
+# python -X utf8로 CLI 대화형 실행
+python -X utf8 qa_bot.py --mode cli
+
+# API 서버 실행
+python -X utf8 qa_bot.py --mode api
+
+⚡️ 설정을 로드하는 중...
+🤖 AI 시스템을 초기화하는 중...
+✅ AI 시스템 초기화 완료! (소요시간: 0.86초)
+🚀 API 서버 시작...
+INFO:     Started server process [23624]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5001 (Press CTRL+C to quit)
+```
+- http://127.0.0.1:5001 로 접속
+- 새 터미널 열어 아래와 같이 상태 확인 가능
+``` bash
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> Invoke-RestMethod http://127.0.0.1:5001/health
+
+status           timestamp active_sessions
+------           --------- ---------------
+healthy 1779989389.4502301               0
+```
+- 질문 API 호출 예시
+``` bash
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:5001/api/query `
+  -Method Post `
+  -ContentType "application/json; charset=utf-8" `
+  -Body '{"query":"이 문서들은 어떤 내용을 담고 있어?"}'
+                                      
+response                           
+--------                            
+이 문서들은 주로 일본어 학습과 관련된 내용과 건국대학교의 인공지능 전공 강의에 대한 정보를 담고 있습니다. 구체적으로는:...
+```
+- 한글이 깨지면 -> `chcp 65001` 입력 / 터미널 재실행
+
 ## 9. 프로젝트 구조 및 환경 설정
 
 ### 9-1. AGENT.md
