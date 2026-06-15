@@ -430,6 +430,15 @@ tests\test_query_analyzer.py ..... [100%]
 5 passed in 0.10s
 ```
 
+### 10-5. 정책 영향 분석 워크플로우
+- `context_builder.py` : 7-3. 컨텍스트 구성 전략 형식으로 정책/뉴스/시세 컨텍스트 구성
+- `answer_generator.py` : 현재는 OpenAI 호출 없이 템플릿 기반 답변 생성
+- `market_impact_workflow.py` : 전체 흐름을 하나로 묶는 워크플로우 파일 / 전체 실행 순서를 담당
+  - 질문 분석 (`query_analyzer.py`) + 정책/뉴스 인덱스 (`build_index.py`, `vector_store.py`) + 시세 조회/집계 (`price_retriever.py`, `market_analyzer.py`)
+- 현재까지는 FAISS 검색이 아니라 샘플 JSONL 기반 규칙 매칭
+  - API 키 없이 테스트 가능하도록 MVP 구현
+
+
 <!--
 1.
 codexAnswer.md => Phase 3. 질문 분석기를 단순 규칙으로 먼저 만든다
