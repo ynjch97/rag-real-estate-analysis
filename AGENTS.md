@@ -13,11 +13,18 @@ This repository is currently minimal and contains only the root `README.md`. As 
 ```
 src/
   data/
+    __init__.py
     loaders.py              # JSONL 읽기
+  prices/
+    __init__.py
+    price_retriever.py      # transactions.jsonl 조회 (지역/기간 필터링)
+    market_analyzer.py      # 월별 평균가, 중위값, 거래 건수 등을 계산
   embeddings/
+    __init__.py
     build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
     vector_store.py         # FAISS 저장/로드/검색 공통 래퍼
   retrieval/
+    __init__.py
     query_analyzer.py       # 질문에서 지역/정책 키워드/의도/기간 추출
 
 data/
@@ -30,7 +37,9 @@ data/
     news_faiss/             # news.jsonl로 만든 FAISS 인덱스
 
 tests/
-  test_query_analyzer.py     # 규칙 기반 분석기 테스트
+  test_query_analyzer.py    # 규칙 기반 분석기 테스트
+  test_price_retriever.py
+  test_market_analyzer.py
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

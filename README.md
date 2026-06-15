@@ -406,6 +406,29 @@ tests\test_query_analyzer.py ..... [100%]
 =========================================== 5 passed in 0.06s ===========================================
 ```
 
+### 10-4. 시세 조회와 월별 집계
+- 시세 데이터 : 조건 기반 필터링 및 시계열 조회 방식
+- 월별 지표 : 입력 데이터를 가공해서 만든 분석 지표
+  - 시세 원천 데이터 `transactions.jsonl` > 지역/기간으로 필터링 > 월별 집계 계산 > 월별 지표
+``` json
+// 예시
+{
+  "month": "2024-01",           // contract_date → month로 변환
+  "region": "성동구",            // sigungu → region으로 사용
+  "avg_price": 1367500000,      // price 의 평균가
+  "median_price": 1367500000,   // price 의 중위값
+  "price_per_m2": 19000000,     // price / area_m2 → price_per_m2
+  "transaction_count": 2,       // 거래 건수
+  "mom_change_rate": -1.2       // 전월 대비 평균 가격 변화율
+}
+```
+- 테스트 실행
+``` bash
+# pytest 실행
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -m pytest tests/test_price_retriever.py tests/test_market_analyzer.py
+
+5 passed in 0.10s
+```
 
 <!--
 1.
