@@ -11,6 +11,8 @@ This repository is currently minimal and contains only the root `README.md`. As 
 - `assets/`: 이미지, 다이어그램, 정적 파일
 
 ```
+run_app.py                  # 서버 실행을 위함
+
 src/
   data/
     __init__.py
@@ -28,11 +30,15 @@ src/
     market_analyzer.py      # 월별 평균가, 중위값, 거래 건수 등을 계산
   analysis/
     __init__.py
-    context_builder.py       # LLM 입력 컨텍스트 구성
-    answer_generator.py      # 컨텍스트 기반 최종 답변 생성
+    context_builder.py      # LLM 입력 컨텍스트 구성
+    answer_generator.py     # 컨텍스트 기반 최종 답변 생성
   workflows/
     __init__.py
     market_impact_workflow.py # 질문 분석 → 정책/뉴스 검색 → 시세 분석 → 컨텍스트 구성 → 답변 생성 워크플로우
+  api/
+    __init__.py
+    main.py                 # FastAPI 앱과 /api/analyze 엔드포인트
+    schemas.py              # 요청/응답 모델
 
 data/
   sample/
@@ -49,6 +55,7 @@ tests/
   test_market_analyzer.py   # 일별 지표 계산 테스트
   test_context_builder.py   # 컨텍스트 구성 테스트
   test_market_impact_workflow.py # 워크플로우 테스트
+  test_api.py               # /api/analyze 호출 테스트
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

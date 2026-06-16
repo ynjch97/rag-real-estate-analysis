@@ -437,6 +437,73 @@ tests\test_query_analyzer.py ..... [100%]
   - 질문 분석 (`query_analyzer.py`) + 정책/뉴스 인덱스 (`build_index.py`, `vector_store.py`) + 시세 조회/집계 (`price_retriever.py`, `market_analyzer.py`)
 - 현재까지는 FAISS 검색이 아니라 샘플 JSONL 기반 규칙 매칭
   - API 키 없이 테스트 가능하도록 MVP 구현
+- 테스트 실행
+``` bash
+# pytest 실행
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -m pytest tests/test_market_impact_workflow.py -v
+
+tests/test_market_impact_workflow.py::test_analyzes_market_impact_end_to_end PASSED
+tests/test_market_impact_workflow.py::test_analyzes_loan_regulation_query PASSED
+
+# 워크플로우 테스트
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘'); print(result['answer'])"
+
+[결론 요약]
+성동구의 금리 인상 전후 시세를 비교한 결과, 평균 가격 변화율은 -0.49%입니다.
+월평균 거래량 변화율은 0.0%입니다.
+
+(중략)
+```
+
+### 10-6. FastAPI 엔드포인트 만들기
+- 분석 워크플로우를 API 형태로 호출할 수 있게 함
+  - `api/main.py` : FastAPI 앱과 /api/analyze 엔드포인트
+  - `api/schemas.py` : 요청/응답 Pydantic 모델
+``` text
+사용자 질문 (POST /api/analyze)
+↓
+market_impact_workflow.analyze_market_impact(query)
+↓
+질문 분석 + 정책/뉴스 조회 + 월별 시세 집계 + 답변 생성
+↓
+JSON 응답 반환
+```
+- FastAPI 엔드포인트 구조
+``` json
+Method: POST
+URL: http://127.0.0.1:5001/api/analyze
+Body:
+{
+  "query": "이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘"
+}
+```
+- 터미널 테스트 실행
+``` bash
+# FastAPI 서버 실행 (종료 시 Ctrl + C)
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -X utf8 run_app.py --mode api
+
+# 새 터미널에서 상태 확인
+Invoke-RestMethod http://127.0.0.1:8000/health
+
+# 새 터미널에서 분석 API 테스트
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/api/analyze `
+  -Method Post `
+  -ContentType "application/json; charset=utf-8" `
+  -Body '{"query":"이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘"}'
+
+# 한글 깨지면 아래 먼저 실행
+chcp 65001
+```
+- 브라우저 테스트 실행
+  - FastAPI가 자동으로 제공하는 Swagger 화면 : http://127.0.0.1:8000/docs
+  - `Try it out` -> Request body 에 JSON 입력 -> `Execute`
+``` json
+{
+  "query": "이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘"
+}
+```
+
 
 
 <!--
