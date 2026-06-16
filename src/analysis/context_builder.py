@@ -27,7 +27,13 @@ def build_market_impact_context(
             "[참고 출처]",
             _format_sources(policies, news_items),
             "[제약 조건]",
-            "제공된 정보에 없는 내용은 추측하지 않는다.",
+            "\n".join(
+                [
+                    "- 제공된 정책, 뉴스, 시세 데이터에 없는 내용은 추측하지 않는다.",
+                    "- 수치 데이터는 market_summary에 있는 값만 사용한다.",
+                    "- 정책과 시세의 관계는 단정하지 말고, 근거 수준을 함께 설명한다.",
+                ]
+            ),
         ]
     )
 
