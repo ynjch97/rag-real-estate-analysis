@@ -1,7 +1,7 @@
 from typing import Any
 
 
-# README 7-3 구조에 맞는 LLM 입력용 컨텍스트 구성
+# README 7-3 구조 기반 LLM 입력 컨텍스트 구성
 def build_market_impact_context(
     parsed_query: dict[str, Any],
     policies: list[dict[str, Any]],
@@ -12,7 +12,9 @@ def build_market_impact_context(
         [
             "[질문 해석]",
             _format_query(parsed_query),
-            "[정책 정보]",
+            "[결론 요약]",
+            _format_conclusion(market_summary),
+            "[정책 근거]",
             _format_policies(policies),
             "[관련 뉴스 요약]",
             _format_news(news_items),
@@ -34,12 +36,18 @@ def build_market_impact_context(
 def _format_query(parsed_query: dict[str, Any]) -> str:
     return "\n".join(
         [
-            f"- 지역: {parsed_query.get('region') or '미확인'}",
+            f"- 지역/기간: {parsed_query.get('region') or '미확인'} / 전 {parsed_query.get('months_before')}개월, 후 {parsed_query.get('months_after')}개월",
             f"- 정책 이벤트: {parsed_query.get('event_keyword') or '미확인'}",
-            f"- 정책 유형: {parsed_query.get('policy_type') or '미확인'}",
-            f"- 질의 의도: {parsed_query.get('intent')}",
-            f"- 거래 유형: {parsed_query.get('transaction_type')}",
-            f"- 분석 기간: 전 {parsed_query.get('months_before')}개월 / 후 {parsed_query.get('months_after')}개월",
+        ]
+    )
+
+
+# 결론 요약을 컨텍스트 문자열로 변환
+def _format_conclusion(market_summary: dict[str, Any]) -> str:
+    return "\n".join(
+        [
+            f"- 평균 매매가 변화율: {_format_percent(market_summary.get('price_change_rate'))}",
+            f"- 거래량 변화율: {_format_percent(market_summary.get('transaction_count_change_rate'))}",
         ]
     )
 
@@ -50,7 +58,7 @@ def _format_policies(policies: list[dict[str, Any]]) -> str:
         return "- 관련 정책 없음"
 
     return "\n".join(
-        f"- {policy.get('title')} ({policy.get('published_date')}): {policy.get('summary')}"
+        f"- {policy.get('title')} (발표일: {policy.get('published_date')}, 시행일: {policy.get('effective_date') or '미확인'}): {policy.get('summary')}"
         for policy in policies
     )
 
@@ -70,11 +78,9 @@ def _format_news(news_items: list[dict[str, Any]]) -> str:
 def _format_market_summary(market_summary: dict[str, Any]) -> str:
     return "\n".join(
         [
-            f"- 기준 지역: {market_summary.get('region')}",
-            f"- 기준 월: {market_summary.get('policy_month')}",
-            f"- 정책 전 평균 가격: {_format_number(market_summary.get('before_avg_price'))}",
-            f"- 정책 후 평균 가격: {_format_number(market_summary.get('after_avg_price'))}",
-            f"- 가격 변화율: {_format_percent(market_summary.get('price_change_rate'))}",
+            f"- 기준 지역/월: {market_summary.get('region')} / {market_summary.get('policy_month')}",
+            f"- 평균 매매가: 정책 전 {_format_number(market_summary.get('before_avg_price'))} → 정책 후 {_format_number(market_summary.get('after_avg_price'))}",
+            f"- 평균 매매가 변화율: {_format_percent(market_summary.get('price_change_rate'))}",
             f"- 정책 전 월평균 거래량: {_format_number(market_summary.get('before_avg_transaction_count'))}",
             f"- 정책 후 월평균 거래량: {_format_number(market_summary.get('after_avg_transaction_count'))}",
             f"- 거래량 변화율: {_format_percent(market_summary.get('transaction_count_change_rate'))}",
@@ -95,7 +101,7 @@ def _format_sources(policies: list[dict[str, Any]], news_items: list[dict[str, A
     return "\n".join(sources) if sources else "- 참고 출처 없음"
 
 
-# 숫자 값을 읽기 쉬운 문자열로 변환
+# 숫자 값 문자열 변환
 def _format_number(value: Any) -> str:
     if value is None:
         return "계산 불가"
@@ -104,7 +110,7 @@ def _format_number(value: Any) -> str:
     return str(value)
 
 
-# 퍼센트 값을 읽기 쉬운 문자열로 변환
+# 퍼센트 값 문자열 변환
 def _format_percent(value: Any) -> str:
     if value is None:
         return "계산 불가"

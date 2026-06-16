@@ -11,15 +11,18 @@ def test_analyzes_market_impact_end_to_end():
     assert result["news"][0]["news_id"] == "news_001"
     assert result["market_summary"]["region"] == "성동구"
     assert result["market_summary"]["policy_month"] == "2024-01"
+    assert "[질문 해석]" in result["answer"]
     assert "[결론 요약]" in result["answer"]
-    assert "[정책 정보]" in result["answer"]
+    assert "[정책 근거]" in result["answer"]
     assert "[관련 뉴스 요약]" in result["answer"]
     assert "[시세 변화 데이터]" in result["answer"]
     assert "[정책과 시세의 관계 해석]" in result["answer"]
     assert "[불확실성 및 추가 확인 필요 사항]" in result["answer"]
     assert "[참고 출처]" in result["answer"]
     assert "[컨텍스트]" not in result["answer"]
-    assert "[정책 정보]" in result["context"]
+    assert "[질문 해석]" in result["context"]
+    assert "[결론 요약]" in result["context"]
+    assert "[정책 근거]" in result["context"]
 
 
 # 대출 규제 질문의 정책/뉴스 매칭 검증

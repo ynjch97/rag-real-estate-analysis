@@ -28,8 +28,9 @@ def test_analyze_endpoint():
     assert data["market_summary"]["region"] == "성동구"
     assert data["sources"]["policies"] == ["policy_001"]
     assert data["sources"]["news"][0] == "news_001"
+    assert "[질문 해석]" in data["answer"]
     assert "[결론 요약]" in data["answer"]
-    assert "[정책 정보]" in data["answer"]
+    assert "[정책 근거]" in data["answer"]
     assert "[관련 뉴스 요약]" in data["answer"]
     assert "[시세 변화 데이터]" in data["answer"]
     assert "[정책과 시세의 관계 해석]" in data["answer"]

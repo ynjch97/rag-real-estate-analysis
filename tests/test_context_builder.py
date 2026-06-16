@@ -44,9 +44,13 @@ def test_builds_context_with_readme_sections():
         },
     )
 
-    assert "[정책 정보]" in context
+    assert "[질문 해석]" in context
+    assert "[결론 요약]" in context
+    assert "[정책 근거]" in context
     assert "[관련 뉴스 요약]" in context
     assert "[시세 변화 데이터]" in context
+    assert "- 지역/기간: 성동구 / 전 6개월, 후 6개월" in context
+    assert "평균 매매가 변화율" in context
     assert "제공된 정보에 없는 내용은 추측하지 않는다." in context
 
 
