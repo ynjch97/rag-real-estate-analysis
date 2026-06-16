@@ -12,6 +12,13 @@ def test_analyzes_market_impact_end_to_end():
     assert result["market_summary"]["region"] == "성동구"
     assert result["market_summary"]["policy_month"] == "2024-01"
     assert "[결론 요약]" in result["answer"]
+    assert "[정책 정보]" in result["answer"]
+    assert "[관련 뉴스 요약]" in result["answer"]
+    assert "[시세 변화 데이터]" in result["answer"]
+    assert "[정책과 시세의 관계 해석]" in result["answer"]
+    assert "[불확실성 및 추가 확인 필요 사항]" in result["answer"]
+    assert "[참고 출처]" in result["answer"]
+    assert "[컨텍스트]" not in result["answer"]
     assert "[정책 정보]" in result["context"]
 
 
