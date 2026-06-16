@@ -508,6 +508,18 @@ chcp 65001
 }
 ```
 
+### 10-7. FAISS 검색으로 교체
+- `market_impact_workflow.py` : 정책/뉴스의 샘플 JSONL 직접 검색 방식에서 FAISS 기반 검색 방식으로 변경
+  - `policy_retriever.py` : data/indexes/policy_faiss 로드 -> 질문/정책 키워드로 관련 정책 Top-k 검색
+  - `news_retriever.py` : data/indexes/news_faiss 로드 -> 지역 + 정책 기준 관련 뉴스 Top-k 검색
+- 테스트 실행
+``` bash
+# pytest 실행
+(.venv) PS D:\STUDY\git_ragRealEstateAnalysis> python -m pytest tests/test_policy_retriever.py tests/test_news_retriever.py -v
+
+5 passed in 0.10s
+```
+
 
 
 <!--
