@@ -17,6 +17,10 @@ src/
   data/
     __init__.py
     loaders.py              # JSONL 읽기
+  collectors/
+    transaction_collector.py # 
+  preprocessing/
+    transaction_cleaner.py  #
   embeddings/
     __init__.py
     build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
@@ -60,6 +64,7 @@ tests/
   test_api.py               # /api/analyze 호출 테스트
   test_policy_retriever.py
   test_news_retriever.py
+  test_transaction_cleaner.py
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

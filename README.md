@@ -54,10 +54,12 @@
   - 수집 데이터 : 기사 제목, 본문, 작성 일시, 지역 키워드, 정책 키워드, 감성 분석 점수
 
 ### 3-3. 시세 데이터
-- 국토교통부 실거래가 공개시스템
+- 국토교통부 실거래가 공개시스템 : https://rt.molit.go.kr/
   - 정책 발표 전후 가격 변화, 특정 지역 거래량 급증, 신고가 발생 빈도 등을 파악 가능
-  - https://rt.molit.go.kr/
-  - Open API : https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15058799&utm_source=chatgpt.com
+- 공공데이터포털 Open API 국토교통부_아파트 매매 실거래가 자료 : https://www.data.go.kr/data/15126469/openapi.do
+- 공공데이터포털 Open API 서울특별시_부동산 실거래가 정보 : https://www.data.go.kr/data/15052419/fileData.do
+  - 서울시 부동산 실거래가 정보 : https://data.seoul.go.kr/dataList/OA-21275/S/1/datasetView.do ***(채택)***
+- 데이터 수집
   - 수집 방식 : Open API로 데이터 수집
   - 수집 주기 : 월 1회
   - 수집 데이터 : 거래 금액, 거래 일자, 법정동, 아파트명, 전용면적, 층수, 건축년도, 거래 유형, 거래량
@@ -520,13 +522,17 @@ chcp 65001
 5 passed in 0.10s
 ```
 
+### 10-8. 시세 데이터 수집
+- 서울특별시 부동산 실거래가 API
+- `transaction_collector.py` : 서울특별시 부동산 실거래가 API 호출 (지역/기간별 거래 원천 데이터 수집)
+  - `data/raw/seoul_transactions_2024_11500.jsonl` -> 원천 데이터 저장
+- `transaction_cleaner.py` : [4-3. 시세 데이터](#4-3-시세-데이터) 구조로 정규화 (price 숫자 변환, contract_date YYYY-MM-DD 정규화 등)
+  - `data/processed/transactions_2024_11500.jsonl` -> 정규화된 데이터 저장
+- 테스트 실행
+``` bash
+# 호출 테스트
+python -c "from src.collectors.transaction_collector import fetch_seoul_transactions_raw; rows = fetch_seoul_transactions_raw(acc_year=2024, sgg_cd=11500, sgg_nm='강서구', bjdong_cd=10300, land_gbn=1, land_gbn_nm='대지', house_type='아파트'); print(len(rows)); print(rows[:1])"
 
-
-<!--
-1.
-codexAnswer.md => Phase 3. 질문 분석기를 단순 규칙으로 먼저 만든다
-
-
-2.
-README.md => 7-3. 컨텍스트 구성 전략
--->
+# 정규화 테스트
+python -c "from src.collectors.transaction_collector import fetch_seoul_transactions_raw; from src.preprocessing.transaction_cleaner import normalize_transactions; rows = fetch_seoul_transactions_raw(acc_year=2024, sgg_cd=11500, sgg_nm='강서구', bjdong_cd=10300, land_gbn=1, land_gbn_nm='대지', house_type='아파트'); tx = normalize_transactions(rows); print(len(tx)); print(tx[:1])"
+```
