@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 
 from src.api.schemas import AnalyzeRequest, AnalyzeResponse, Sources
-from src.workflows.market_impact_workflow import analyze_market_impact
+from src.agents.controller import analyze_with_agent
 
 
 app = FastAPI(title="RAG Real Estate Decision API")
@@ -22,7 +22,7 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     if not query:
         raise HTTPException(status_code=400, detail="query must not be blank")
 
-    result = analyze_market_impact(query)
+    result = analyze_with_agent(query)
     return _to_analyze_response(result)
 
 

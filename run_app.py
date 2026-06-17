@@ -2,7 +2,7 @@ import argparse
 
 import uvicorn
 
-from src.workflows.market_impact_workflow import analyze_market_impact
+from src.agents.controller import analyze_with_agent
 
 
 # API 서버 실행
@@ -23,7 +23,7 @@ def run_cli() -> None:
             print("질문을 입력하세요.")
             continue
 
-        result = analyze_market_impact(query)
+        result = analyze_with_agent(query)
         print("\n" + result["answer"])
 
 

@@ -29,6 +29,9 @@ src/
     __init__.py
     build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
     vector_store.py         # FAISS 저장/로드/검색 공통 래퍼
+  agents/
+    task_planner.py         # 질문 유형 판단, 유형별 검색 순서 결정
+    controller.py           # 정책/뉴스/시세 조회, 답변 문자열 생성
   retrieval/
     __init__.py
     query_analyzer.py       # 질문에서 지역/정책 키워드/의도/기간 추출
@@ -78,6 +81,7 @@ tests/
   test_policy_cleaner.py
   test_ecos_collector.py
   test_hybrid_search.py
+  test_agent_controller.py
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

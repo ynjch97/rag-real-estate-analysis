@@ -592,3 +592,22 @@ hybrid_score =
 ```
 - 대상 : `policy_retriever.py`, `news_retriever.py`
 
+### 10-12. Agent Controller
+- Agent Controller 먼저 수행 후 `market_impact_workflow.py`
+- 질문 분석 동작 흐름
+  - analyze_with_agent(query)
+  - plan_agent_task(query)
+  - 질문 유형 판단
+  - 유형별 검색 순서 결정
+  - 정책/뉴스/시세 조회
+- 질문 유형별 검색 순서
+  - 정책 영향 분석 (예: `이번 금리 인상으로 영등포구 집값에 미친 영향`) : policy → news → price
+  - 지역 비교 (예: `올해 마포구와 은평구 중 어디 집값이 더 올랐어?`) : price → news
+  - 가격 상승 원인 분석 (예: `올해 강남구 집값 왜 올랐어?`) : policy → news → price
+  - 전망 질문 (예: `강서구 내년에 집값 어떨 것 같아?`) : price → news → policy
+- 테스트 실행
+``` bash
+python -c "from src.agents.task_planner import plan_agent_task; print(plan_agent_task('올해 마포구와 은평구 중 어디 집값이 더 올랐어?'))"
+```
+- `task_planner.py` : 질문 유형 판단, 유형별 검색 순서 결정
+- `controller.py` : 정책/뉴스/시세 조회, 답변 문자열 생성
