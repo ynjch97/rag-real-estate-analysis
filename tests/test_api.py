@@ -6,6 +6,16 @@ from src.api.main import app
 client = TestClient(app)
 
 
+# 채팅 화면 응답 검증
+def test_chat_page():
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "RAG 기반 부동산 의사결정 시스템" in response.text
+    assert "/api/analyze" in response.text
+
+
 # 서버 상태 확인 API 검증
 def test_health_check():
     response = client.get("/health")
