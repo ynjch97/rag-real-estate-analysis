@@ -63,3 +63,4 @@ def test_retrieves_news_documents_from_sample_fallback():
     )
 
     assert [result["news_id"] for result in results] == ["news_001"]
+    assert results[0]["hybrid_score"] > 0

@@ -579,3 +579,16 @@ python -c "from src.workflows.market_impact_workflow import analyze_market_impac
 ``` bash
 python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('이번 금리 정책으로 인한 마포구 집값 영향 알려줘.'); print(result['parsed_query']); print(result['policies'][:2])"
 ```
+
+### 10-11. 검색 품질을 Hybrid Search로 개선
+- BM25 기반 키워드 검색 + FAISS 벡터 검색 => Hybrid Search 적용
+  - FAISS만 사용 시 키워드가 정확히 일치해야 함
+- 검색 결과는 단순 FAISS 순서가 아닌 아래 점수로 재정렬됨
+``` text
+hybrid_score =
+  BM25 키워드 점수 * 0.45
+  + FAISS 벡터 점수 * 0.35
+  + 지역/정책 태그 점수 * 0.20
+```
+- 대상 : `policy_retriever.py`, `news_retriever.py`
+

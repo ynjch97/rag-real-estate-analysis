@@ -11,6 +11,7 @@ from src.collectors.news_collector import fetch_naver_news_raw, has_naver_api_cr
 from src.data.loaders import load_jsonl
 from src.embeddings.vector_store import load_vector_store
 from src.preprocessing.news_cleaner import normalize_naver_news_items, save_news
+from src.retrieval.hybrid_search import rerank_hybrid_results
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -30,17 +31,18 @@ def retrieve_news_documents(
     fallback_path: str | Path = DEFAULT_NEWS_SOURCE,
     use_faiss: bool = True,
     use_live_api: bool = True,
+    use_hybrid: bool = True,
 ) -> list[dict[str, Any]]:
     if use_live_api and has_naver_api_credentials():
         try:
-            live_news = _retrieve_news_documents_from_naver(parsed_query, query=query, top_k=top_k)
+            live_news = _retrieve_news_documents_from_naver(parsed_query, query=query, top_k=top_k, use_hybrid=use_hybrid)
             if live_news:
                 return live_news
         except Exception:
             pass
 
     if not use_faiss:
-        return _retrieve_news_documents_from_sample(parsed_query, fallback_path, top_k)
+        return _retrieve_news_documents_from_sample(parsed_query, fallback_path, top_k, query=query, use_hybrid=use_hybrid)
 
     query_text = query or _build_news_query(parsed_query)
     embeddings = embeddings or _load_openai_embeddings()
@@ -49,10 +51,22 @@ def retrieve_news_documents(
         return _retrieve_news_documents_from_sample(parsed_query, fallback_path, top_k)
 
     vector_store = load_vector_store(index_dir, embeddings)
-    documents = vector_store.similarity_search(query_text, k=max(top_k * 4, top_k))
-    news_items = [_document_to_news(document) for document in documents]
+    documents_with_scores = _similarity_search_with_scores(vector_store, query_text, k=max(top_k * 4, top_k))
+    news_items = [_document_to_news(document) for document, _ in documents_with_scores]
+    vector_scores = _build_news_vector_scores(documents_with_scores)
     filtered_news = _filter_news_documents(news_items, parsed_query)
-    return (filtered_news or news_items)[:top_k]
+    candidates = filtered_news or news_items
+    if use_hybrid:
+        return rerank_hybrid_results(
+            query=query_text,
+            items=candidates,
+            parsed_query=parsed_query,
+            text_fields=("title", "summary", "content", "region_tags", "policy_tags", "market_signal"),
+            id_field="news_id",
+            top_k=top_k,
+            vector_scores=vector_scores,
+        )
+    return candidates[:top_k]
 
 
 # 네이버 뉴스 API 기반 관련 뉴스 검색
@@ -60,6 +74,7 @@ def _retrieve_news_documents_from_naver(
     parsed_query: dict[str, Any],
     query: str | None = None,
     top_k: int = 5,
+    use_hybrid: bool = True,
 ) -> list[dict[str, Any]]:
     query_text = _build_naver_news_query(parsed_query, query)
     raw_news_items = fetch_naver_news_raw(query=query_text, display=min(max(top_k * 2, 10), 100), sort="date")
@@ -69,7 +84,17 @@ def _retrieve_news_documents_from_naver(
     save_raw_news(_build_raw_news_path(query_text), raw_news_items)
     save_news(_build_processed_news_path(query_text), filtered_news or news_items)
 
-    return (filtered_news or news_items)[:top_k]
+    candidates = filtered_news or news_items
+    if use_hybrid:
+        return rerank_hybrid_results(
+            query=query_text,
+            items=candidates,
+            parsed_query=parsed_query,
+            text_fields=("title", "summary", "content", "region_tags", "policy_tags", "market_signal"),
+            id_field="news_id",
+            top_k=top_k,
+        )
+    return candidates[:top_k]
 
 
 # 네이버 뉴스 검색어 생성
@@ -140,6 +165,8 @@ def _retrieve_news_documents_from_sample(
     parsed_query: dict[str, Any],
     news_path: str | Path,
     top_k: int,
+    query: str | None = None,
+    use_hybrid: bool = True,
 ) -> list[dict[str, Any]]:
     news_items = load_jsonl(news_path)
     region = parsed_query.get("region")
@@ -151,6 +178,15 @@ def _retrieve_news_documents_from_sample(
         if _matches_region_tag(news, region)
         and (policy_type is None or policy_type in news.get("policy_tags", []))
     ]
+    if use_hybrid:
+        return rerank_hybrid_results(
+            query=query or _build_news_query(parsed_query),
+            items=matched,
+            parsed_query=parsed_query,
+            text_fields=("title", "summary", "region_tags", "policy_tags", "market_signal"),
+            id_field="news_id",
+            top_k=top_k,
+        )
     return matched[:top_k]
 
 
@@ -194,6 +230,33 @@ def _document_to_news(document: Document) -> dict[str, Any]:
     news["content"] = document.page_content
     news.setdefault("summary", document.page_content)
     return news
+
+
+# FAISS 유사도 검색과 점수 조회
+def _similarity_search_with_scores(vector_store: Any, query: str, k: int) -> list[tuple[Document, float]]:
+    if hasattr(vector_store, "similarity_search_with_relevance_scores"):
+        try:
+            return vector_store.similarity_search_with_relevance_scores(query, k=k)
+        except Exception:
+            pass
+    if hasattr(vector_store, "similarity_search_with_score"):
+        return [(document, _distance_to_similarity(score)) for document, score in vector_store.similarity_search_with_score(query, k=k)]
+    return [(document, 1.0) for document in vector_store.similarity_search(query, k=k)]
+
+
+# FAISS 거리 점수를 유사도 점수로 변환
+def _distance_to_similarity(score: float) -> float:
+    return 1 / (1 + float(score))
+
+
+# 뉴스 문서 벡터 점수 dict 생성
+def _build_news_vector_scores(documents_with_scores: list[tuple[Document, float]]) -> dict[str, float]:
+    scores: dict[str, float] = {}
+    for document, score in documents_with_scores:
+        news_id = document.metadata.get("news_id")
+        if news_id is not None:
+            scores[str(news_id)] = float(score)
+    return scores
 
 
 # 지역 태그 포함 여부 확인

@@ -34,6 +34,7 @@ src/
     query_analyzer.py       # 질문에서 지역/정책 키워드/의도/기간 추출
     policy_retriever.py     # FAISS 기반 정책 검색
     news_retriever.py       # FAISS 기반 뉴스 검색
+    hybrid_search.py        # Hybrid Search 적용
   prices/
     __init__.py
     price_retriever.py      # transactions.jsonl 조회 (지역/기간 필터링)
@@ -76,6 +77,7 @@ tests/
   test_news_collector.py
   test_policy_cleaner.py
   test_ecos_collector.py
+  test_hybrid_search.py
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

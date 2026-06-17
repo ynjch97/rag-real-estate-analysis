@@ -10,6 +10,7 @@ from src.collectors.ecos_collector import fetch_ecos_interest_rate_items_raw, ha
 from src.data.loaders import load_jsonl
 from src.embeddings.vector_store import load_vector_store
 from src.preprocessing.policy_cleaner import normalize_ecos_interest_rate_items, save_policies
+from src.retrieval.hybrid_search import rerank_hybrid_results
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +30,7 @@ def retrieve_policy_documents(
     fallback_path: str | Path = DEFAULT_POLICY_SOURCE,
     use_faiss: bool = True,
     use_live_api: bool = True,
+    use_hybrid: bool = True,
 ) -> list[dict[str, Any]]:
     if use_live_api and _is_interest_rate_query(parsed_query) and has_ecos_api_key():
         try:
@@ -39,7 +41,7 @@ def retrieve_policy_documents(
             pass
 
     if not use_faiss:
-        return _retrieve_policy_documents_from_sample(parsed_query, fallback_path, top_k)
+        return _retrieve_policy_documents_from_sample(parsed_query, fallback_path, top_k, query=query, use_hybrid=use_hybrid)
 
     query_text = query or _build_policy_query(parsed_query)
     embeddings = embeddings or _load_openai_embeddings()
@@ -48,10 +50,22 @@ def retrieve_policy_documents(
         return _retrieve_policy_documents_from_sample(parsed_query, fallback_path, top_k)
 
     vector_store = load_vector_store(index_dir, embeddings)
-    documents = vector_store.similarity_search(query_text, k=max(top_k * 4, top_k))
-    policies = [_document_to_policy(document) for document in documents]
+    documents_with_scores = _similarity_search_with_scores(vector_store, query_text, k=max(top_k * 4, top_k))
+    policies = [_document_to_policy(document) for document, _ in documents_with_scores]
+    vector_scores = _build_policy_vector_scores(documents_with_scores)
     filtered_policies = _filter_policy_documents(policies, parsed_query)
-    return (filtered_policies or policies)[:top_k]
+    candidates = filtered_policies or policies
+    if use_hybrid:
+        return rerank_hybrid_results(
+            query=query_text,
+            items=candidates,
+            parsed_query=parsed_query,
+            text_fields=("title", "summary", "content", "policy_type", "keywords", "region_tags"),
+            id_field="policy_id",
+            top_k=top_k,
+            vector_scores=vector_scores,
+        )
+    return candidates[:top_k]
 
 
 # ECOS API 기반 금리 정책 근거 조회
@@ -104,6 +118,8 @@ def _retrieve_policy_documents_from_sample(
     parsed_query: dict[str, Any],
     policy_path: str | Path,
     top_k: int,
+    query: str | None = None,
+    use_hybrid: bool = True,
 ) -> list[dict[str, Any]]:
     policies = load_jsonl(policy_path)
     region = parsed_query.get("region")
@@ -120,6 +136,15 @@ def _retrieve_policy_documents_from_sample(
             or _contains_keyword(policy.get("keywords", []), event_keyword)
         )
     ]
+    if use_hybrid:
+        return rerank_hybrid_results(
+            query=query or _build_policy_query(parsed_query),
+            items=matched,
+            parsed_query=parsed_query,
+            text_fields=("title", "summary", "policy_type", "keywords", "region_tags"),
+            id_field="policy_id",
+            top_k=top_k,
+        )
     return matched[:top_k]
 
 
@@ -157,6 +182,33 @@ def _document_to_policy(document: Document) -> dict[str, Any]:
     policy["content"] = document.page_content
     policy.setdefault("summary", document.page_content)
     return policy
+
+
+# FAISS 유사도 검색과 점수 조회
+def _similarity_search_with_scores(vector_store: Any, query: str, k: int) -> list[tuple[Document, float]]:
+    if hasattr(vector_store, "similarity_search_with_relevance_scores"):
+        try:
+            return vector_store.similarity_search_with_relevance_scores(query, k=k)
+        except Exception:
+            pass
+    if hasattr(vector_store, "similarity_search_with_score"):
+        return [(document, _distance_to_similarity(score)) for document, score in vector_store.similarity_search_with_score(query, k=k)]
+    return [(document, 1.0) for document in vector_store.similarity_search(query, k=k)]
+
+
+# FAISS 거리 점수를 유사도 점수로 변환
+def _distance_to_similarity(score: float) -> float:
+    return 1 / (1 + float(score))
+
+
+# 정책 문서 벡터 점수 dict 생성
+def _build_policy_vector_scores(documents_with_scores: list[tuple[Document, float]]) -> dict[str, float]:
+    scores: dict[str, float] = {}
+    for document, score in documents_with_scores:
+        policy_id = document.metadata.get("policy_id")
+        if policy_id is not None:
+            scores[str(policy_id)] = float(score)
+    return scores
 
 
 # 지역 태그 포함 여부 확인
