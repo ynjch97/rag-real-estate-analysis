@@ -44,6 +44,7 @@ def _to_analyze_response(result: dict[str, Any]) -> AnalyzeResponse:
             news=[news["news_id"] for news in result["news"]],
         ),
         context=result["context"],
+        agent_plan=result.get("agent_plan", {}),
     )
 
 
@@ -154,15 +155,37 @@ def _build_chat_page() -> str:
       opacity: 0.65;
     }
 
-    .output {
-      min-height: 520px;
-      max-height: calc(100vh - 190px);
-      overflow: auto;
-      white-space: pre-wrap;
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .result-panel {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 18px;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      min-height: 42px;
+      border-bottom: 1px solid var(--line);
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-strong);
+      background: #fbfaf7;
+    }
+
+    .output {
+      min-height: 180px;
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      padding: 16px;
       font-family: Consolas, "Malgun Gothic", monospace;
       font-size: 14px;
       line-height: 1.65;
@@ -191,8 +214,8 @@ def _build_chat_page() -> str:
       }
 
       .output {
-        min-height: 460px;
-        max-height: none;
+        min-height: 180px;
+        max-height: 320px;
       }
     }
   </style>
@@ -210,15 +233,42 @@ def _build_chat_page() -> str:
         <button id="submit-button" type="submit">분석</button>
       </form>
 
-      <div id="output" class="output placeholder">아직 분석 결과가 없습니다.</div>
+      <div class="result-grid">
+        <section class="result-panel">
+          <div class="panel-title">1. 결론 요약</div>
+          <div id="summary-output" class="output placeholder">아직 분석 결과가 없습니다.</div>
+        </section>
+
+        <section class="result-panel">
+          <div class="panel-title">2. 질문 해석</div>
+          <div id="question-output" class="output placeholder">아직 분석 결과가 없습니다.</div>
+        </section>
+
+        <section class="result-panel">
+          <div class="panel-title">3. 근거 및 상세 분석</div>
+          <div id="detail-output" class="output placeholder">아직 분석 결과가 없습니다.</div>
+        </section>
+      </div>
     </section>
   </main>
 
   <script>
     const form = document.getElementById("chat-form");
     const input = document.getElementById("query-input");
-    const output = document.getElementById("output");
+    const summaryOutput = document.getElementById("summary-output");
+    const questionOutput = document.getElementById("question-output");
+    const detailOutput = document.getElementById("detail-output");
     const button = document.getElementById("submit-button");
+    const sectionTitles = [
+      "질문 해석",
+      "결론 요약",
+      "정책 근거",
+      "관련 뉴스 요약",
+      "시세 변화 데이터",
+      "정책과 시세의 관계 해석",
+      "불확실성 및 추가 확인 필요 사항",
+      "참고 출처"
+    ];
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -228,8 +278,7 @@ def _build_chat_page() -> str:
         return;
       }
 
-      output.className = "output";
-      output.textContent = "분석 중입니다...";
+      setLoading("분석 중입니다...");
       button.disabled = true;
 
       try {
@@ -247,15 +296,125 @@ def _build_chat_page() -> str:
         }
 
         const data = await response.json();
-        output.textContent = data.answer || "응답 내용이 없습니다.";
+        renderResult(data);
       } catch (error) {
-        output.className = "output error";
-        output.textContent = `오류가 발생했습니다.\\n${error.message}`;
+        setError(`오류가 발생했습니다.\\n${error.message}`);
       } finally {
         button.disabled = false;
         input.focus();
       }
     });
+
+    function renderResult(data) {
+      const answer = data.answer || "";
+      setPanelText(summaryOutput, extractSection(answer, "결론 요약") || "결론 요약이 없습니다.");
+      setPanelText(questionOutput, buildQuestionBox(data, answer));
+      setPanelText(detailOutput, buildDetailBox(answer));
+    }
+
+    function buildQuestionBox(data, answer) {
+      const questionSection = extractSection(answer, "질문 해석") || "질문 해석이 없습니다.";
+      const plan = data.agent_plan || {};
+      const parsedQuery = data.parsed_query || {};
+      const sources = data.sources || {};
+      const marketSummary = data.market_summary || {};
+      const taskType = plan.task_type || parsedQuery.task_type || "미확인";
+      const retrievalSteps = Array.isArray(plan.retrieval_steps) ? plan.retrieval_steps.join(" → ") : "미확인";
+      const reasoningStrategy = plan.reasoning_strategy || "미확인";
+      const dataList = buildRetrievedDataList(sources, marketSummary);
+
+      return [
+        questionSection,
+        "",
+        "[Agent Controller]",
+        `- 질문 유형 판단: ${taskType}`,
+        `- 검색 순서 결정: ${retrievalSteps}`,
+        `- 추론 전략: ${reasoningStrategy}`,
+        "- 조회한 데이터 목록:",
+        dataList
+      ].join("\\n");
+    }
+
+    function buildRetrievedDataList(sources, marketSummary) {
+      const policySources = Array.isArray(sources.policies) && sources.policies.length ? sources.policies.join(", ") : "없음";
+      const newsSources = Array.isArray(sources.news) && sources.news.length ? sources.news.join(", ") : "없음";
+      const priceSources = formatPriceDataList(marketSummary);
+
+      return [
+        `  - 정책: ${policySources}`,
+        `  - 뉴스: ${newsSources}`,
+        `  - 시세: ${priceSources}`
+      ].join("\\n");
+    }
+
+    function formatPriceDataList(marketSummary) {
+      if (Array.isArray(marketSummary.regions) && marketSummary.regions.length) {
+        return marketSummary.regions
+          .map((item) => `${item.region || "지역 미확인"} ${item.acc_year || ""}`.trim())
+          .join(", ");
+      }
+      if (marketSummary.region || marketSummary.acc_year || marketSummary.policy_month) {
+        return `${marketSummary.region || "지역 미확인"} ${marketSummary.acc_year || marketSummary.policy_month || ""}`.trim();
+      }
+      if (marketSummary.price_summary && marketSummary.price_summary.region) {
+        return `${marketSummary.price_summary.region} ${marketSummary.price_summary.acc_year || ""}`.trim();
+      }
+      return "없음";
+    }
+
+    function buildDetailBox(answer) {
+      const titles = [
+        "정책 근거",
+        "관련 뉴스 요약",
+        "시세 변화 데이터",
+        "정책과 시세의 관계 해석",
+        "불확실성 및 추가 확인 필요 사항",
+        "참고 출처"
+      ];
+      const sections = titles
+        .map((title) => {
+          const content = extractSection(answer, title);
+          return content ? `[${title}]\\n${content}` : "";
+        })
+        .filter(Boolean);
+
+      return sections.length ? sections.join("\\n\\n") : "상세 분석 내용이 없습니다.";
+    }
+
+    function extractSection(answer, title) {
+      const startToken = `[${title}]`;
+      const startIndex = answer.indexOf(startToken);
+      if (startIndex < 0) {
+        return "";
+      }
+
+      const contentStart = startIndex + startToken.length;
+      const nextIndexes = sectionTitles
+        .filter((sectionTitle) => sectionTitle !== title)
+        .map((sectionTitle) => answer.indexOf(`[${sectionTitle}]`, contentStart))
+        .filter((index) => index >= 0);
+      const contentEnd = nextIndexes.length ? Math.min(...nextIndexes) : answer.length;
+      return answer.slice(contentStart, contentEnd).trim();
+    }
+
+    function setPanelText(panel, text) {
+      panel.className = "output";
+      panel.textContent = text;
+    }
+
+    function setLoading(text) {
+      [summaryOutput, questionOutput, detailOutput].forEach((panel) => {
+        panel.className = "output placeholder";
+        panel.textContent = text;
+      });
+    }
+
+    function setError(text) {
+      [summaryOutput, questionOutput, detailOutput].forEach((panel) => {
+        panel.className = "output error";
+        panel.textContent = text;
+      });
+    }
   </script>
 </body>
 </html>

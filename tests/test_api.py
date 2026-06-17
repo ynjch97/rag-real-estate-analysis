@@ -14,6 +14,10 @@ def test_chat_page():
     assert "text/html" in response.headers["content-type"]
     assert "RAG 기반 부동산 의사결정 시스템" in response.text
     assert "/api/analyze" in response.text
+    assert "1. 결론 요약" in response.text
+    assert "2. 질문 해석" in response.text
+    assert "3. 근거 및 상세 분석" in response.text
+    assert "Agent Controller" in response.text
 
 
 # 서버 상태 확인 API 검증
@@ -47,6 +51,7 @@ def test_analyze_endpoint():
     assert "[불확실성 및 추가 확인 필요 사항]" in data["answer"]
     assert "[참고 출처]" in data["answer"]
     assert "[컨텍스트]" not in data["answer"]
+    assert "agent_plan" in data
 
 
 # 빈 질문 요청 오류 검증
