@@ -663,6 +663,10 @@ python -c "from src.workflows.market_impact_workflow import analyze_market_impac
 - `policy_retriever.py` 수정
   - 금리 질문은 ECOS API 우선 사용 / 정책 질문은 정책브리핑 우선 수집
   - 수집 결과를 Hybrid Search로 재정렬 후 정책 근거로 사용
+- 키워드 검색을 통해 1차 필터링
+  - 필터링 키워드 : 질문에서 추출한 정책 이벤트, 정책 유형, 지역, 동
+- 상세 기사 HTML을 읽은 뒤 부동산 관련 키워드가 있는 기사만 2차 필터링
+  - 필터링 키워드 : 집값, 부동산, 주택, 아파트, 전세, 월세, 매매, 대출, DSR, LTV, 청약, 재건축, 재개발, 공급, 국토교통부
 - 테스트 실행
 ``` bash
 python -m pytest tests/test_policy_collector.py tests/test_policy_cleaner.py tests/test_policy_retriever.py -v

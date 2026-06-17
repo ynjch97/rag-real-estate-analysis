@@ -7,7 +7,11 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from src.collectors.ecos_collector import fetch_ecos_interest_rate_items_raw, has_ecos_api_key, save_raw_ecos_items
-from src.collectors.policy_collector import fetch_korea_policy_news_raw, save_raw_policy_news
+from src.collectors.policy_collector import (
+    DEFAULT_REAL_ESTATE_POLICY_KEYWORDS,
+    fetch_korea_policy_news_raw,
+    save_raw_policy_news,
+)
 from src.data.loaders import load_jsonl
 from src.embeddings.vector_store import load_vector_store
 from src.preprocessing.policy_cleaner import normalize_ecos_interest_rate_items, normalize_korea_policy_news_items, save_policies
@@ -94,7 +98,13 @@ def _retrieve_policy_documents_from_korea_policy_briefing(
     query: str | None = None,
     top_k: int = 3,
 ) -> list[dict[str, Any]]:
-    raw_items = fetch_korea_policy_news_raw(max_items=max(top_k * 4, 10))
+    search_keyword = _build_korea_policy_news_search_keyword(parsed_query, query=query)
+    required_keywords = _build_korea_policy_news_required_keywords(parsed_query)
+    raw_items = fetch_korea_policy_news_raw(
+        max_items=max(top_k * 4, 10),
+        search_keyword=search_keyword,
+        required_keywords=required_keywords,
+    )
     policies = normalize_korea_policy_news_items(raw_items)
     query_text = query or _build_policy_query(parsed_query)
     ranked_policies = rerank_hybrid_results(
@@ -110,6 +120,50 @@ def _retrieve_policy_documents_from_korea_policy_briefing(
     save_policies(DEFAULT_PROCESSED_POLICY_DIR / "policies_korea_policy_news.jsonl", ranked_policies)
 
     return ranked_policies
+
+
+# 정책브리핑 정책뉴스 검색어 생성
+def _build_korea_policy_news_search_keyword(parsed_query: dict[str, Any], query: str | None = None) -> str:
+    values = [
+        parsed_query.get("event_keyword"),
+        _policy_type_to_search_keyword(parsed_query.get("policy_type")),
+        parsed_query.get("region"),
+        parsed_query.get("dong"),
+    ]
+    keyword_values = list(dict.fromkeys(str(value) for value in values if value))
+    if not parsed_query.get("event_keyword") and not parsed_query.get("policy_type"):
+        keyword_values.append("부동산")
+    keyword = " ".join(keyword_values)
+    return keyword or "부동산"
+
+
+# 정책 유형을 정책브리핑 검색어로 변환
+def _policy_type_to_search_keyword(policy_type: Any) -> str | None:
+    mapping = {
+        "interest_rate": "금리",
+        "loan_regulation": "대출 규제",
+        "supply_policy": "주택 공급",
+        "tax_policy": "부동산 세제",
+    }
+    return mapping.get(policy_type)
+
+
+# 정책브리핑 정책뉴스 필수 키워드 생성
+def _build_korea_policy_news_required_keywords(parsed_query: dict[str, Any]) -> tuple[str, ...]:
+    values = list(DEFAULT_REAL_ESTATE_POLICY_KEYWORDS)
+    event_keyword = parsed_query.get("event_keyword")
+    policy_type = parsed_query.get("policy_type")
+
+    if event_keyword:
+        values.append(str(event_keyword))
+    if policy_type == "loan_regulation":
+        values.extend(["대출", "DSR", "LTV"])
+    if policy_type == "supply_policy":
+        values.extend(["공급", "주택", "재건축", "재개발"])
+    if policy_type == "interest_rate":
+        values.extend(["금리", "대출금리", "한국은행"])
+
+    return tuple(dict.fromkeys(values))
 
 
 # 질문 분석 결과 기반 정책 검색어 생성

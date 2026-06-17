@@ -30,6 +30,13 @@ def test_builds_korea_policy_news_list_url():
     assert url == "https://www.korea.kr/news/policyNewsList.do?smenu=EDS01&pageIndex=2"
 
 
+# 정책브리핑 정책뉴스 검색어 URL 생성 검증
+def test_builds_korea_policy_news_list_url_with_search_keyword():
+    url = build_korea_policy_news_list_url(page=1, search_keyword="부동산")
+
+    assert url == "https://www.korea.kr/news/policyNewsList.do?smenu=EDS01&pageIndex=1&srchKeyword=%EB%B6%80%EB%8F%99%EC%82%B0"
+
+
 # 정책브리핑 정책뉴스 상세 링크 추출 검증
 def test_extracts_policy_news_links():
     html = """
@@ -89,6 +96,59 @@ def test_fetches_korea_policy_news_raw_with_fake_opener():
     assert len(rows) == 1
     assert rows[0]["title"] == "대출 규제 개선"
     assert rows[0]["ministry"] == "금융위원회"
+
+
+# 정책브리핑 정책뉴스 관련 키워드 필터링 검증
+def test_fetches_only_real_estate_policy_news_with_fake_opener():
+    list_html = """
+    <a href="/news/policyNewsView.do?newsId=148964990">정책뉴스 A</a>
+    <a href="/news/policyNewsView.do?newsId=148964991">정책뉴스 B</a>
+    """
+    unrelated_detail_html = """
+    <h1>디지털 교육 확대</h1>
+    <h2>교육부, 학교 인프라 개선</h2>
+    <p>2026.05.22 교육부</p>
+    <p>AI 교과서와 학교 네트워크 개선을 추진한다.</p>
+    """
+    real_estate_detail_html = """
+    <h1>주택 공급 확대</h1>
+    <h2>국토교통부, 수도권 공급 기반 강화</h2>
+    <p>2026.05.22 국토교통부</p>
+    <p>정부는 부동산 시장 안정을 위해 주택 공급을 확대한다.</p>
+    """
+
+    def fake_opener(request):
+        if "policyNewsList.do" in request.full_url:
+            assert "srchKeyword=%EB%B6%80%EB%8F%99%EC%82%B0" in request.full_url
+            return FakeResponse(list_html)
+        if "148964990" in request.full_url:
+            return FakeResponse(unrelated_detail_html)
+        return FakeResponse(real_estate_detail_html)
+
+    rows = fetch_korea_policy_news_raw(max_items=2, search_keyword="부동산", opener=fake_opener)
+
+    assert len(rows) == 1
+    assert rows[0]["title"] == "주택 공급 확대"
+
+
+# 정책브리핑 공통 본문 키워드 오탐 제외 검증
+def test_excludes_unrelated_policy_news_even_if_body_has_real_estate_menu_text():
+    list_html = '<a href="/news/policyNewsView.do?newsId=148964990">정책뉴스 A</a>'
+    detail_html = """
+    <h1>공정거래 위반 신고포상금 확대</h1>
+    <h2>공정거래위원회, 신고 제도 개선</h2>
+    <p>2026.06.17 공정거래위원회</p>
+    <p>사이트 이동경로 정책뉴스 국토교통부 부동산 주택 아파트 뉴스 목록</p>
+    """
+
+    def fake_opener(request):
+        if "policyNewsList.do" in request.full_url:
+            return FakeResponse(list_html)
+        return FakeResponse(detail_html)
+
+    rows = fetch_korea_policy_news_raw(max_items=1, search_keyword="부동산", opener=fake_opener)
+
+    assert rows == []
 
 
 # 정책브리핑 원천 데이터 JSONL 저장 검증

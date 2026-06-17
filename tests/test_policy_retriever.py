@@ -2,7 +2,7 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import DeterministicFakeEmbedding
 
 from src.embeddings.vector_store import create_vector_store, save_vector_store
-from src.retrieval.policy_retriever import retrieve_policy_documents
+from src.retrieval.policy_retriever import _build_korea_policy_news_search_keyword, retrieve_policy_documents
 
 
 # FAISS 정책 인덱스 검색 검증
@@ -61,3 +61,31 @@ def test_retrieves_policy_documents_from_sample_fallback():
     )
 
     assert [result["policy_id"] for result in results] == ["policy_001"]
+
+
+# 정책브리핑 정책뉴스 검색어 생성 검증
+def test_builds_korea_policy_news_search_keyword():
+    keyword = _build_korea_policy_news_search_keyword(
+        {
+            "region": "강서구",
+            "dong": None,
+            "event_keyword": "대출 규제",
+            "policy_type": "loan_regulation",
+        }
+    )
+
+    assert keyword == "대출 규제 강서구"
+
+
+# 정책 이벤트 없는 지역 질문 검색어 생성 검증
+def test_builds_korea_policy_news_search_keyword_with_real_estate_fallback():
+    keyword = _build_korea_policy_news_search_keyword(
+        {
+            "region": "강남구",
+            "dong": None,
+            "event_keyword": None,
+            "policy_type": None,
+        }
+    )
+
+    assert keyword == "강남구 부동산"
