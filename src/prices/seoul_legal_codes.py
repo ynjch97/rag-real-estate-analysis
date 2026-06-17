@@ -63,6 +63,19 @@ def find_legal_dong_codes_by_sigungu(sigungu: str, path: str | Path | None = Non
     return rows
 
 
+# 동 이름으로 서울시 법정동 코드 조회
+def find_legal_dong_code_by_dong(dong: str, path: str | Path | None = None) -> dict[str, str]:
+    normalized_dong = dong.strip()
+    rows = [row for row in load_legal_dong_codes(path) if row["dong"] == normalized_dong]
+
+    if not rows:
+        raise ValueError(f"Legal dong code not found: {normalized_dong}")
+    if len(rows) > 1:
+        raise ValueError(f"Legal dong code is ambiguous: {normalized_dong}")
+
+    return rows[0]
+
+
 # 10자리 법정동 코드를 API용 구/동 코드로 분리
 def split_legal_dong_code(legal_dong_code: str | int) -> dict[str, str]:
     code = str(legal_dong_code).strip()

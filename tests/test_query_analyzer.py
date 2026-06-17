@@ -49,6 +49,14 @@ def test_extracts_year_and_region_from_real_estate_query():
     assert parsed.transaction_type == "sale"
 
 
+def test_extracts_sigungu_from_dong_query():
+    parsed = analyze_query("2025년 반포동 부동산에 대해 알려줘")
+
+    assert parsed.region == "서초구"
+    assert parsed.dong == "반포동"
+    assert parsed.acc_year == 2025
+
+
 def test_uses_defaults_when_region_or_policy_is_missing():
     parsed = analyze_query("서울 아파트 시장 분위기 알려줘")
 
@@ -65,6 +73,7 @@ def test_returns_dict_for_workflow_inputs():
     parsed = analyze_query("성동구 전세 시장에 금리가 미친 영향").to_dict()
 
     assert parsed["region"] == "성동구"
+    assert parsed["dong"] is None
     assert parsed["transaction_type"] == "jeonse"
     assert parsed["acc_year"] is None
     assert parsed["months_before"] == 6

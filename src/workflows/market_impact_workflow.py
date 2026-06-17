@@ -31,6 +31,7 @@ def analyze_market_impact(
     transactions = retrieve_or_collect_transactions(
         region=parsed_query["region"],
         acc_year=_select_transaction_year(parsed_query, policy_month),
+        dong=parsed_query["dong"],
         transaction_type=_to_korean_transaction_type(parsed_query["transaction_type"]),
         fallback_path=transaction_path,
     )
@@ -42,6 +43,8 @@ def analyze_market_impact(
         months_before=parsed_query["months_before"],
         months_after=parsed_query["months_after"],
     )
+    if parsed_query.get("dong") is not None:
+        market_summary["dong"] = parsed_query["dong"]
     context = build_market_impact_context(parsed_query, policies, news_items, market_summary)
     answer = generate_market_impact_answer(parsed_query, policies, news_items, market_summary, context)
 

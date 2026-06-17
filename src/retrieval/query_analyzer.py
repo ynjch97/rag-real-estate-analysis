@@ -18,6 +18,7 @@ POLICY_KEYWORD_RULES = (
 class ParsedQuery:
     query: str
     region: str | None
+    dong: str | None
     event_keyword: str | None
     policy_type: str | None
     intent: str
@@ -33,10 +34,12 @@ class ParsedQuery:
 
 def analyze_query(query: str) -> ParsedQuery:
     normalized_query = query.strip()
+    legal_dong = _extract_legal_dong(normalized_query)
 
     return ParsedQuery(
         query=normalized_query,
-        region=_extract_region(normalized_query),
+        region=_extract_region(normalized_query, legal_dong),
+        dong=legal_dong["dong"] if legal_dong is not None else None,
         event_keyword=_extract_event_keyword(normalized_query),
         policy_type=_extract_policy_type(normalized_query),
         intent=_extract_intent(normalized_query),
@@ -48,10 +51,26 @@ def analyze_query(query: str) -> ParsedQuery:
     )
 
 
-def _extract_region(query: str) -> str | None:
+def _extract_region(query: str, legal_dong: dict[str, str] | None = None) -> str | None:
     for region in _get_supported_regions():
         if region in query:
             return region
+    if legal_dong is not None:
+        return legal_dong["sigungu"]
+    return None
+
+
+# 질문에서 서울시 법정동 조회
+def _extract_legal_dong(query: str) -> dict[str, str] | None:
+    try:
+        legal_codes = load_legal_dong_codes()
+    except FileNotFoundError:
+        return None
+
+    for row in sorted(legal_codes, key=lambda value: len(value["dong"]), reverse=True):
+        if row["dong"] in query:
+            return row
+
     return None
 
 

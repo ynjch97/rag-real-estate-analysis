@@ -547,7 +547,7 @@ python -c "from src.collectors.transaction_collector import fetch_seoul_transact
 python -c "from src.collectors.transaction_collector import fetch_seoul_transactions_raw; from src.preprocessing.transaction_cleaner import normalize_transactions; rows = fetch_seoul_transactions_raw(acc_year=2024, sgg_cd=11500, sgg_nm='강서구', bjdong_cd=10300, land_gbn=1, land_gbn_nm='대지', house_type='아파트'); tx = normalize_transactions(rows); print(len(tx)); print(tx[:1])"
 
 # 질문 분석 -> 데이터 수집 테스트
-python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('2026년 서초구 부동산에 대해 알려줘'); print(result['parsed_query']); print(len(result['monthly_metrics'])); print(result['monthly_metrics'][:1])"
+python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('2026년 개포동 부동산에 대해 알려줘'); print(result['parsed_query']); print(len(result['monthly_metrics'])); print(result['monthly_metrics'][:1])"
 ```
 
 
