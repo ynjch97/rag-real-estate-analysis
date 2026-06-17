@@ -1,4 +1,7 @@
+import re
 from dataclasses import asdict, dataclass
+
+from src.prices.seoul_legal_codes import load_legal_dong_codes
 
 
 SUPPORTED_REGIONS = ("성동구", "광진구", "강남구")
@@ -20,6 +23,7 @@ class ParsedQuery:
     intent: str
     property_type: str
     transaction_type: str
+    acc_year: int | None
     months_before: int
     months_after: int
 
@@ -38,16 +42,29 @@ def analyze_query(query: str) -> ParsedQuery:
         intent=_extract_intent(normalized_query),
         property_type=_extract_property_type(normalized_query),
         transaction_type=_extract_transaction_type(normalized_query),
+        acc_year=_extract_acc_year(normalized_query),
         months_before=6,
         months_after=6,
     )
 
 
 def _extract_region(query: str) -> str | None:
-    for region in SUPPORTED_REGIONS:
+    for region in _get_supported_regions():
         if region in query:
             return region
     return None
+
+
+# 서울시 구 이름 목록 조회
+def _get_supported_regions() -> tuple[str, ...]:
+    regions = set(SUPPORTED_REGIONS)
+
+    try:
+        regions.update(row["sigungu"] for row in load_legal_dong_codes())
+    except FileNotFoundError:
+        pass
+
+    return tuple(sorted(regions, key=len, reverse=True))
 
 
 def _extract_event_keyword(query: str) -> str | None:
@@ -85,3 +102,11 @@ def _extract_transaction_type(query: str) -> str:
     if "월세" in query:
         return "monthly_rent"
     return "sale"
+
+
+# 질문에서 수집 기준 연도 추출
+def _extract_acc_year(query: str) -> int | None:
+    match = re.search(r"(20\d{2})\s*년?", query)
+    if match is None:
+        return None
+    return int(match.group(1))

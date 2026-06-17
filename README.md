@@ -524,15 +524,30 @@ chcp 65001
 
 ### 10-8. 시세 데이터 수집
 - 서울특별시 부동산 실거래가 API
+- `data/reference/legal_dong_codes.csv` : 법정동 코드 CSV
+  - 예시 : `1156011700` -> `sgg_cd=11560`, `bjdong_cd=11700`
+- `seoul_legal_codes.py` : 법정동 CSV를 읽어 구/동 이름을 서울시 API 코드로 변환
+  - `영등포구`, `당산동` -> `11560`, `11700`
 - `transaction_collector.py` : 서울특별시 부동산 실거래가 API 호출 (지역/기간별 거래 원천 데이터 수집)
   - `data/raw/seoul_transactions_2024_11500.jsonl` -> 원천 데이터 저장
 - `transaction_cleaner.py` : [4-3. 시세 데이터](#4-3-시세-데이터) 구조로 정규화 (price 숫자 변환, contract_date YYYY-MM-DD 정규화 등)
   - `data/processed/transactions_2024_11500.jsonl` -> 정규화된 데이터 저장
 - 테스트 실행
 ``` bash
+# 법정동 코드 변환 테스트
+python -c "from src.prices.seoul_legal_codes import find_legal_dong_code; print(find_legal_dong_code('영등포구', '당산동'))"
+
 # 호출 테스트
 python -c "from src.collectors.transaction_collector import fetch_seoul_transactions_raw; rows = fetch_seoul_transactions_raw(acc_year=2024, sgg_cd=11500, sgg_nm='강서구', bjdong_cd=10300, land_gbn=1, land_gbn_nm='대지', house_type='아파트'); print(len(rows)); print(rows[:1])"
 
+# 구/동 이름 기준 호출 테스트
+python -c "from src.collectors.transaction_collector import fetch_seoul_transactions_by_dong; rows = fetch_seoul_transactions_by_dong(acc_year=2024, sigungu='영등포구', dong='당산동'); print(len(rows)); print(rows[:1])"
+
 # 정규화 테스트
 python -c "from src.collectors.transaction_collector import fetch_seoul_transactions_raw; from src.preprocessing.transaction_cleaner import normalize_transactions; rows = fetch_seoul_transactions_raw(acc_year=2024, sgg_cd=11500, sgg_nm='강서구', bjdong_cd=10300, land_gbn=1, land_gbn_nm='대지', house_type='아파트'); tx = normalize_transactions(rows); print(len(tx)); print(tx[:1])"
+
+# 질문 분석 -> 데이터 수집 테스트
+python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('2026년 서초구 부동산에 대해 알려줘'); print(result['parsed_query']); print(len(result['monthly_metrics'])); print(result['monthly_metrics'][:1])"
 ```
+
+

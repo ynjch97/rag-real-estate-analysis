@@ -1,11 +1,18 @@
 import json
+import os
 from datetime import date
 from pathlib import Path
 from typing import Any
 
+from src.collectors.transaction_collector import fetch_seoul_transactions_by_sigungu, save_raw_transactions
+from src.preprocessing.transaction_cleaner import normalize_transactions, save_transactions
+from src.prices.seoul_legal_codes import get_sgg_cd
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_TRANSACTION_PATH = PROJECT_ROOT / "data" / "sample" / "transactions.jsonl"
+DEFAULT_RAW_TRANSACTION_DIR = PROJECT_ROOT / "data" / "raw"
+DEFAULT_PROCESSED_TRANSACTION_DIR = PROJECT_ROOT / "data" / "processed"
 
 
 # transactions.jsonl 파일을 읽어서 거래 데이터 목록으로 변환
@@ -48,6 +55,59 @@ def retrieve_transactions(
     ]
 
 
+# 실제 서울시 API 데이터 우선 거래 데이터 조회
+def retrieve_or_collect_transactions(
+    region: str | None,
+    acc_year: str | int,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    transaction_type: str | None = "매매",
+    fallback_path: str | Path = DEFAULT_TRANSACTION_PATH,
+) -> list[dict[str, Any]]:
+    if region is None:
+        return retrieve_transactions(
+            region=region,
+            start_date=start_date,
+            end_date=end_date,
+            transaction_type=transaction_type,
+            path=fallback_path,
+        )
+
+    processed_path = _build_processed_transaction_path(region=region, acc_year=acc_year)
+    if processed_path.exists():
+        return retrieve_transactions(
+            region=region,
+            start_date=start_date,
+            end_date=end_date,
+            transaction_type=transaction_type,
+            path=processed_path,
+        )
+
+    if not _has_transaction_api_key():
+        return retrieve_transactions(
+            region=region,
+            start_date=start_date,
+            end_date=end_date,
+            transaction_type=transaction_type,
+            path=fallback_path,
+        )
+
+    raw_rows = fetch_seoul_transactions_by_sigungu(acc_year=acc_year, sigungu=region)
+    raw_path = _build_raw_transaction_path(region=region, acc_year=acc_year)
+    save_raw_transactions(raw_path, raw_rows)
+
+    transactions = normalize_transactions(raw_rows)
+    save_transactions(processed_path, transactions)
+
+    return retrieve_transactions(
+        region=region,
+        start_date=start_date,
+        end_date=end_date,
+        transaction_type=transaction_type,
+        path=processed_path,
+    )
+
+
 # 거래 데이터의 시군구가 요청 지역과 일치하는지 확인
 def _matches_region(transaction: dict[str, Any], region: str | None) -> bool:
     if region is None:
@@ -83,3 +143,36 @@ def _parse_optional_date(value: str | None) -> date | None:
 # YYYY-MM-DD 형식의 날짜 문자열을 date 객체로 변환
 def _parse_date(value: str) -> date:
     return date.fromisoformat(value)
+
+
+# 지역/연도 기준 정규화 거래 파일 경로 생성
+def _build_processed_transaction_path(region: str, acc_year: str | int) -> Path:
+    sgg_cd = get_sgg_cd(region)
+    return DEFAULT_PROCESSED_TRANSACTION_DIR / f"transactions_{acc_year}_{sgg_cd}.jsonl"
+
+
+# 지역/연도 기준 원천 거래 파일 경로 생성
+def _build_raw_transaction_path(region: str, acc_year: str | int) -> Path:
+    sgg_cd = get_sgg_cd(region)
+    return DEFAULT_RAW_TRANSACTION_DIR / f"seoul_transactions_{acc_year}_{sgg_cd}.jsonl"
+
+
+# 거래 API 키 존재 여부 확인
+def _has_transaction_api_key() -> bool:
+    _load_env()
+    return bool(os.getenv("TRANSACTION_API_KEY") or os.getenv("SEOUL_API_KEY"))
+
+
+# 루트 .env 환경변수 로드
+def _load_env(env_path: Path = PROJECT_ROOT / ".env") -> None:
+    if not env_path.exists():
+        return
+
+    with env_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))

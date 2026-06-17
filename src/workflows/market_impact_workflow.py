@@ -5,7 +5,7 @@ from typing import Any
 from src.analysis.answer_generator import generate_market_impact_answer
 from src.analysis.context_builder import build_market_impact_context
 from src.prices.market_analyzer import calculate_monthly_metrics, summarize_before_after
-from src.prices.price_retriever import DEFAULT_TRANSACTION_PATH, retrieve_transactions
+from src.prices.price_retriever import DEFAULT_TRANSACTION_PATH, retrieve_or_collect_transactions
 from src.retrieval.news_retriever import retrieve_news_documents
 from src.retrieval.policy_retriever import retrieve_policy_documents
 from src.retrieval.query_analyzer import analyze_query
@@ -28,10 +28,11 @@ def analyze_market_impact(
     news_items = retrieve_news_documents(parsed_query, query=query, fallback_path=news_path)
     policy_month = _select_policy_month(policies)
 
-    transactions = retrieve_transactions(
+    transactions = retrieve_or_collect_transactions(
         region=parsed_query["region"],
+        acc_year=_select_transaction_year(parsed_query, policy_month),
         transaction_type=_to_korean_transaction_type(parsed_query["transaction_type"]),
-        path=transaction_path,
+        fallback_path=transaction_path,
     )
     monthly_metrics = calculate_monthly_metrics(transactions)
     market_summary = summarize_before_after(
@@ -62,6 +63,17 @@ def _select_policy_month(policies: list[dict[str, Any]]) -> str:
 
     policy_date = policies[0].get("effective_date") or policies[0].get("published_date")
     return str(policy_date)[:7]
+
+
+# 시세 수집 기준 연도 선택
+def _select_transaction_year(parsed_query: dict[str, Any], policy_month: str) -> int:
+    if parsed_query.get("acc_year") is not None:
+        return int(parsed_query["acc_year"])
+
+    try:
+        return int(policy_month[:4])
+    except (TypeError, ValueError):
+        return date.today().year
 
 
 # 분석기 거래유형 값을 샘플 데이터의 한국어 값으로 변환

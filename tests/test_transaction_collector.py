@@ -2,6 +2,8 @@ import json
 
 from src.collectors.transaction_collector import (
     build_seoul_transaction_url,
+    fetch_seoul_transactions_by_dong,
+    fetch_seoul_transactions_by_sigungu,
     fetch_seoul_transactions_raw,
     parse_seoul_transaction_response,
     save_raw_transactions,
@@ -97,6 +99,84 @@ def test_fetches_seoul_transactions_raw_with_fake_opener():
 
     assert rows == [{"SGG_NM": "강서구"}]
     assert seen_urls[0].startswith("http://openapi.seoul.go.kr:8088/test-key/json/tbLnOpendataRtmsV/1/1000/2024/11500/")
+
+
+# 서울시 구/동 이름 기준 원천 데이터 수집 검증
+def test_fetches_seoul_transactions_by_dong_with_legal_code_csv(tmp_path):
+    csv_path = tmp_path / "legal_codes.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                "법정동코드,법정동명,폐지여부",
+                "1156011700,서울특별시 영등포구 당산동,존재",
+            ]
+        ),
+        encoding="utf-8-sig",
+    )
+    payload = {
+        "tbLnOpendataRtmsV": {
+            "RESULT": {"CODE": "INFO-000", "MESSAGE": "정상 처리되었습니다"},
+            "row": [{"CGG_NM": "영등포구", "STDG_NM": "당산동"}],
+        }
+    }
+    seen_urls = []
+
+    def fake_opener(url):
+        seen_urls.append(url)
+        return FakeResponse(payload)
+
+    rows = fetch_seoul_transactions_by_dong(
+        api_key="test-key",
+        acc_year=2024,
+        sigungu="영등포구",
+        dong="당산동",
+        code_path=csv_path,
+        opener=fake_opener,
+    )
+
+    assert rows == [{"CGG_NM": "영등포구", "STDG_NM": "당산동"}]
+    assert seen_urls[0] == (
+        "http://openapi.seoul.go.kr:8088/test-key/json/tbLnOpendataRtmsV/1/1000/"
+        "2024/11560/%EC%98%81%EB%93%B1%ED%8F%AC%EA%B5%AC/11700/1/%EB%8C%80%EC%A7%80/////%EC%95%84%ED%8C%8C%ED%8A%B8"
+    )
+
+
+# 서울시 구 이름 기준 동별 원천 데이터 수집 검증
+def test_fetches_seoul_transactions_by_sigungu_with_all_dong_codes(tmp_path):
+    csv_path = tmp_path / "legal_codes.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                "법정동코드,법정동명,폐지여부",
+                "1150010300,서울특별시 강서구 화곡동,존재",
+                "1150010400,서울특별시 강서구 가양동,존재",
+            ]
+        ),
+        encoding="utf-8-sig",
+    )
+    payload = {
+        "tbLnOpendataRtmsV": {
+            "RESULT": {"CODE": "INFO-000", "MESSAGE": "정상 처리되었습니다"},
+            "row": [{"CGG_NM": "강서구"}],
+        }
+    }
+    seen_urls = []
+
+    def fake_opener(url):
+        seen_urls.append(url)
+        return FakeResponse(payload)
+
+    rows = fetch_seoul_transactions_by_sigungu(
+        api_key="test-key",
+        acc_year=2024,
+        sigungu="강서구",
+        code_path=csv_path,
+        opener=fake_opener,
+    )
+
+    assert rows == [{"CGG_NM": "강서구"}, {"CGG_NM": "강서구"}]
+    assert "/11500/%EA%B0%95%EC%84%9C%EA%B5%AC/10300/" in seen_urls[0]
+    assert "/11500/%EA%B0%95%EC%84%9C%EA%B5%AC/10400/" in seen_urls[1]
 
 
 # 서울시 원천 거래 데이터 JSONL 저장 검증

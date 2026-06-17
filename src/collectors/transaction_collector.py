@@ -5,6 +5,8 @@ from typing import Any, Callable
 from urllib.parse import quote
 from urllib.request import urlopen
 
+from src.prices.seoul_legal_codes import find_legal_dong_code, find_legal_dong_codes_by_sigungu
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SEOUL_API_BASE_URL = "http://openapi.seoul.go.kr:8088"
@@ -92,6 +94,89 @@ def fetch_seoul_transactions_raw(
         payload = json.loads(response.read().decode("utf-8"))
 
     return parse_seoul_transaction_response(payload)
+
+
+# 서울시 구/동 이름 기준 부동산 실거래가 원천 데이터 수집
+def fetch_seoul_transactions_by_dong(
+    acc_year: str | int,
+    sigungu: str,
+    dong: str,
+    code_path: str | Path | None = None,
+    api_key: str | None = None,
+    start_index: int = 1,
+    end_index: int = 1000,
+    land_gbn: str | int | None = 1,
+    land_gbn_nm: str | None = "대지",
+    bonbun: str | int | None = None,
+    bubun: str | int | None = None,
+    floor: str | int | None = None,
+    contract_date: str | int | None = None,
+    house_type: str | None = "아파트",
+    opener: Callable[[str], Any] = urlopen,
+) -> list[dict[str, Any]]:
+    legal_code = find_legal_dong_code(sigungu=sigungu, dong=dong, path=code_path)
+
+    return fetch_seoul_transactions_raw(
+        api_key=api_key,
+        start_index=start_index,
+        end_index=end_index,
+        acc_year=acc_year,
+        sgg_cd=legal_code["sgg_cd"],
+        sgg_nm=legal_code["sigungu"],
+        bjdong_cd=legal_code["bjdong_cd"],
+        land_gbn=land_gbn,
+        land_gbn_nm=land_gbn_nm,
+        bonbun=bonbun,
+        bubun=bubun,
+        floor=floor,
+        contract_date=contract_date,
+        house_type=house_type,
+        opener=opener,
+    )
+
+
+# 서울시 구 이름 기준 부동산 실거래가 원천 데이터 수집
+def fetch_seoul_transactions_by_sigungu(
+    acc_year: str | int,
+    sigungu: str,
+    code_path: str | Path | None = None,
+    api_key: str | None = None,
+    start_index: int = 1,
+    end_index: int = 1000,
+    land_gbn: str | int | None = 1,
+    land_gbn_nm: str | None = "대지",
+    bonbun: str | int | None = None,
+    bubun: str | int | None = None,
+    floor: str | int | None = None,
+    contract_date: str | int | None = None,
+    house_type: str | None = "아파트",
+    opener: Callable[[str], Any] = urlopen,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    legal_codes = find_legal_dong_codes_by_sigungu(sigungu=sigungu, path=code_path)
+
+    for legal_code in legal_codes:
+        rows.extend(
+            fetch_seoul_transactions_raw(
+                api_key=api_key,
+                start_index=start_index,
+                end_index=end_index,
+                acc_year=acc_year,
+                sgg_cd=legal_code["sgg_cd"],
+                sgg_nm=legal_code["sigungu"],
+                bjdong_cd=legal_code["bjdong_cd"],
+                land_gbn=land_gbn,
+                land_gbn_nm=land_gbn_nm,
+                bonbun=bonbun,
+                bubun=bubun,
+                floor=floor,
+                contract_date=contract_date,
+                house_type=house_type,
+                opener=opener,
+            )
+        )
+
+    return rows
 
 
 # 서울시 API JSON 응답에서 row 목록 추출

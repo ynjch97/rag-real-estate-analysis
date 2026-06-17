@@ -32,6 +32,23 @@ def test_extracts_supply_policy_for_reconstruction_query():
     assert parsed.intent == "policy_impact"
 
 
+def test_extracts_region_from_legal_dong_code_reference():
+    parsed = analyze_query("강서구 부동산에 대해 알려줘")
+
+    assert parsed.region == "강서구"
+    assert parsed.property_type == "apartment"
+    assert parsed.transaction_type == "sale"
+
+
+def test_extracts_year_and_region_from_real_estate_query():
+    parsed = analyze_query("2025년 서초구 부동산에 대해 알려줘")
+
+    assert parsed.region == "서초구"
+    assert parsed.acc_year == 2025
+    assert parsed.property_type == "apartment"
+    assert parsed.transaction_type == "sale"
+
+
 def test_uses_defaults_when_region_or_policy_is_missing():
     parsed = analyze_query("서울 아파트 시장 분위기 알려줘")
 
@@ -41,6 +58,7 @@ def test_uses_defaults_when_region_or_policy_is_missing():
     assert parsed.intent == "general_search"
     assert parsed.property_type == "apartment"
     assert parsed.transaction_type == "sale"
+    assert parsed.acc_year is None
 
 
 def test_returns_dict_for_workflow_inputs():
@@ -48,4 +66,5 @@ def test_returns_dict_for_workflow_inputs():
 
     assert parsed["region"] == "성동구"
     assert parsed["transaction_type"] == "jeonse"
+    assert parsed["acc_year"] is None
     assert parsed["months_before"] == 6
