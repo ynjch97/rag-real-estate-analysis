@@ -70,6 +70,8 @@ def test_agent_routes_policy_impact_task(monkeypatch):
 
 # 전망 질문 최근 가용 연도 fallback 검증
 def test_agent_forecast_uses_latest_available_year(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+
     def fake_retrieve_or_collect_transactions(region, acc_year, dong=None, transaction_type=None):
         if acc_year == 2025:
             return [

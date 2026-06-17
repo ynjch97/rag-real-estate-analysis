@@ -1,8 +1,165 @@
+import os
+from pathlib import Path
 from typing import Any
+
+from langchain_openai import ChatOpenAI
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_LLM_MODEL = "gpt-4o-mini"
 
 
 # 컨텍스트와 계산 결과 기반 템플릿 답변 생성
 def generate_market_impact_answer(
+    parsed_query: dict[str, Any],
+    policies: list[dict[str, Any]],
+    news_items: list[dict[str, Any]],
+    market_summary: dict[str, Any],
+    context: str,
+) -> str:
+    llm_answer = _generate_answer_with_llm(
+        parsed_query=parsed_query,
+        policies=policies,
+        news_items=news_items,
+        market_summary=market_summary,
+        context=context,
+    )
+    if llm_answer:
+        return llm_answer
+
+    return _generate_market_impact_answer_from_template(
+        parsed_query=parsed_query,
+        policies=policies,
+        news_items=news_items,
+        market_summary=market_summary,
+        context=context,
+    )
+
+
+# Agent Controller 답변 생성
+def generate_agent_answer(
+    parsed_query: dict[str, Any],
+    policies: list[dict[str, Any]],
+    news_items: list[dict[str, Any]],
+    market_summary: dict[str, Any],
+    context: str,
+    fallback_answer: str,
+) -> str:
+    llm_answer = _generate_answer_with_llm(
+        parsed_query=parsed_query,
+        policies=policies,
+        news_items=news_items,
+        market_summary=market_summary,
+        context=context,
+    )
+    return llm_answer or fallback_answer
+
+
+# LLM 기반 답변 생성
+def _generate_answer_with_llm(
+    parsed_query: dict[str, Any],
+    policies: list[dict[str, Any]],
+    news_items: list[dict[str, Any]],
+    market_summary: dict[str, Any],
+    context: str,
+) -> str | None:
+    _load_env()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key or api_key == "sk-proj-xxxxxxxx":
+        return None
+
+    try:
+        llm = ChatOpenAI(
+            api_key=api_key,
+            model=os.getenv("OPENAI_MODEL", DEFAULT_LLM_MODEL),
+            temperature=0,
+        )
+        response = llm.invoke(_build_llm_messages(parsed_query, policies, news_items, market_summary, context))
+    except Exception:
+        return None
+
+    answer = str(getattr(response, "content", "") or "").strip()
+    if not _has_required_answer_sections(answer):
+        return None
+    return answer
+
+
+# LLM 메시지 생성
+def _build_llm_messages(
+    parsed_query: dict[str, Any],
+    policies: list[dict[str, Any]],
+    news_items: list[dict[str, Any]],
+    market_summary: dict[str, Any],
+    context: str,
+) -> list[tuple[str, str]]:
+    system_prompt = "\n".join(
+        [
+            "너는 RAG 기반 부동산 의사결정 시스템의 답변 생성기다.",
+            "반드시 제공된 컨텍스트, 정책, 뉴스, 시세 데이터 안에서만 답변한다.",
+            "제공된 정보에 없는 사실, 수치, 원인, 전망은 절대 추측하지 않는다.",
+            "정책과 시세의 관계는 단정하지 말고 근거 수준과 불확실성을 함께 설명한다.",
+            "답변은 반드시 아래 섹션명과 순서를 그대로 사용한다.",
+            "[질문 해석]",
+            "[결론 요약]",
+            "[정책 근거]",
+            "[관련 뉴스 요약]",
+            "[시세 변화 데이터]",
+            "[정책과 시세의 관계 해석]",
+            "[불확실성 및 추가 확인 필요 사항]",
+            "[참고 출처]",
+        ]
+    )
+    user_prompt = "\n\n".join(
+        [
+            "[사용자 질문 분석 결과]",
+            str(parsed_query),
+            "[검색된 정책 데이터]",
+            str(policies),
+            "[검색된 뉴스 데이터]",
+            str(news_items),
+            "[시세 계산 데이터]",
+            str(market_summary),
+            "[LLM 입력 컨텍스트]",
+            context,
+            "[작성 지시]",
+            "위 데이터만 근거로 한국어 답변을 작성하라.",
+        ]
+    )
+    return [("system", system_prompt), ("user", user_prompt)]
+
+
+# 필수 답변 섹션 포함 여부 확인
+def _has_required_answer_sections(answer: str) -> bool:
+    required_sections = (
+        "[질문 해석]",
+        "[결론 요약]",
+        "[정책 근거]",
+        "[관련 뉴스 요약]",
+        "[시세 변화 데이터]",
+        "[정책과 시세의 관계 해석]",
+        "[불확실성 및 추가 확인 필요 사항]",
+        "[참고 출처]",
+    )
+    return all(section in answer for section in required_sections)
+
+
+# 루트 .env 환경변수 로드
+def _load_env(env_path: Path = PROJECT_ROOT / ".env") -> None:
+    if not env_path.exists():
+        return
+
+    with env_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+# 템플릿 기반 답변 생성
+def _generate_market_impact_answer_from_template(
     parsed_query: dict[str, Any],
     policies: list[dict[str, Any]],
     news_items: list[dict[str, Any]],

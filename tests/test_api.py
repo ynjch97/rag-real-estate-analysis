@@ -29,7 +29,9 @@ def test_health_check():
 
 
 # 분석 API 응답 구조 검증
-def test_analyze_endpoint():
+def test_analyze_endpoint(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+
     response = client.post(
         "/api/analyze",
         json={"query": "이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘"},

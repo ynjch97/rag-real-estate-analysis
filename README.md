@@ -703,3 +703,13 @@ python -c "from src.agents.task_planner import plan_agent_task; print(plan_agent
 ```
 - `task_planner.py` : 질문 유형 판단, 유형별 검색 순서 결정
 - `controller.py` : 정책/뉴스/시세 조회, 답변 문자열 생성
+
+### 10-13. LLM Generator 실제 호출 전환
+- `answer_generator.py` : 템플릿 전용 생성 방식에서 OpenAI LLM 호출 우선 방식으로 변경
+- 동작 흐름
+  - Context Builder가 컨텍스트 생성
+  - LLM Generator가 OPENAI_API_KEY 확인
+  - OpenAI LLM에 시스템 프롬프트 + 컨텍스트 전달
+  - LLM 답변이 필수 섹션을 모두 포함하면 최종 답변으로 사용
+  - API 키 없음 또는 호출 실패 시 기존 템플릿 답변으로 fallback
+- OPENAI_MODEL = `gpt-4o-mini`

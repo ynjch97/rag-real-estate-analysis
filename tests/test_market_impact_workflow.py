@@ -2,7 +2,9 @@ from src.workflows.market_impact_workflow import analyze_market_impact
 
 
 # 시장 영향 분석 워크플로우 전체 결과 구조 검증
-def test_analyzes_market_impact_end_to_end():
+def test_analyzes_market_impact_end_to_end(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+
     result = analyze_market_impact("이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘")
 
     assert result["parsed_query"]["region"] == "성동구"
@@ -26,7 +28,9 @@ def test_analyzes_market_impact_end_to_end():
 
 
 # 대출 규제 질문의 정책/뉴스 매칭 검증
-def test_analyzes_loan_regulation_query():
+def test_analyzes_loan_regulation_query(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+
     result = analyze_market_impact("DSR 대출 규제가 강남구 매매 시장에 어떤 영향을 줬어?")
 
     assert result["parsed_query"]["region"] == "강남구"

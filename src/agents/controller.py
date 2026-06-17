@@ -9,6 +9,7 @@ from src.agents.task_planner import (
     AgentPlan,
     plan_agent_task,
 )
+from src.analysis.answer_generator import generate_agent_answer
 from src.prices.market_analyzer import calculate_monthly_metrics
 from src.prices.price_retriever import retrieve_or_collect_transactions
 from src.retrieval.news_retriever import retrieve_news_documents
@@ -50,6 +51,8 @@ def _run_region_comparison_task(plan: AgentPlan) -> dict[str, Any]:
         "regions": region_summaries,
         "winner": _select_winner_region(region_summaries),
     }
+    context = _format_agent_context(plan, [], news_items, market_summary)
+    fallback_answer = _format_region_comparison_answer(plan, market_summary, news_items)
 
     return _build_agent_result(
         plan=plan,
@@ -57,7 +60,7 @@ def _run_region_comparison_task(plan: AgentPlan) -> dict[str, Any]:
         news_items=news_items,
         monthly_metrics=[],
         market_summary=market_summary,
-        answer=_format_region_comparison_answer(plan, market_summary, news_items),
+        answer=generate_agent_answer(plan.parsed_query, [], news_items, market_summary, context, fallback_answer),
     )
 
 
@@ -73,6 +76,8 @@ def _run_price_cause_task(plan: AgentPlan) -> dict[str, Any]:
         "region": region,
         "price_summary": region_summary,
     }
+    context = _format_agent_context(plan, policies, news_items, market_summary)
+    fallback_answer = _format_price_cause_answer(plan, policies, news_items, market_summary)
 
     return _build_agent_result(
         plan=plan,
@@ -80,7 +85,7 @@ def _run_price_cause_task(plan: AgentPlan) -> dict[str, Any]:
         news_items=news_items,
         monthly_metrics=region_summary.get("monthly_metrics", []),
         market_summary=market_summary,
-        answer=_format_price_cause_answer(plan, policies, news_items, market_summary),
+        answer=generate_agent_answer(plan.parsed_query, policies, news_items, market_summary, context, fallback_answer),
     )
 
 
@@ -98,6 +103,8 @@ def _run_forecast_task(plan: AgentPlan) -> dict[str, Any]:
         "region": region,
         "price_summary": region_summary,
     }
+    context = _format_agent_context(plan, policies, news_items, market_summary)
+    fallback_answer = _format_forecast_answer(plan, policies, news_items, market_summary)
 
     return _build_agent_result(
         plan=plan,
@@ -105,7 +112,7 @@ def _run_forecast_task(plan: AgentPlan) -> dict[str, Any]:
         news_items=news_items,
         monthly_metrics=region_summary.get("monthly_metrics", []),
         market_summary=market_summary,
-        answer=_format_forecast_answer(plan, policies, news_items, market_summary),
+        answer=generate_agent_answer(plan.parsed_query, policies, news_items, market_summary, context, fallback_answer),
     )
 
 
