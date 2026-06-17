@@ -550,4 +550,19 @@ python -c "from src.collectors.transaction_collector import fetch_seoul_transact
 python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('2026년 개포동 부동산에 대해 알려줘'); print(result['parsed_query']); print(len(result['monthly_metrics'])); print(result['monthly_metrics'][:1])"
 ```
 
+### 10-9. 뉴스 데이터 수집
+- 질문 분석 동작 흐름
+  - "금리 인상으로 동작구 아파트 매매에 미친 영향 알려줘"
+  - region=동작구, event_keyword=금리 인상, transaction_type=sale
+  - 네이버 검색어 생성: "금리 인상 동작구 아파트 매매"
+  - 네이버 뉴스 API 호출
+  - [4-2. 뉴스 데이터](#4-2-뉴스-데이터) 구조로 정규화
+  - 답변 컨텍스트의 [관련 뉴스 요약]에 사용
+- `news_collector.py` : 뉴스 데이터 원천 데이터 수집
+- `news_cleaner.py` : 뉴스 데이터 정규화
+- 테스트 실행
+``` bash
+python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('금리 인상으로 동작구 아파트 매매에 미친 영향 알려줘'); print(result['parsed_query']); print(result['news'][:2])"
+```
 
+### 10-10.

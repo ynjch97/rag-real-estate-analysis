@@ -18,9 +18,11 @@ src/
     __init__.py
     loaders.py              # JSONL 읽기
   collectors/
-    transaction_collector.py # 
+    transaction_collector.py # 시세 데이터 원천 데이터 수집
+    news_collector.py       # 뉴스 데이터 원천 데이터 수집
   preprocessing/
-    transaction_cleaner.py  #
+    transaction_cleaner.py  # 시세 데이터 정규화
+    news_cleaner.py         # 뉴스 데이터 정규화
   embeddings/
     __init__.py
     build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
@@ -51,6 +53,8 @@ data/
     policies.jsonl          # 정책 샘플 문서
     news.jsonl              # 뉴스 샘플 문서
     transactions.jsonl      # 거래별 아파트 매매 샘플 데이터
+  reference/
+    legal_dong_codes.csv    # 법정동 코드
   indexes/
     policy_faiss/           # policies.jsonl로 만든 FAISS 인덱스
     news_faiss/             # news.jsonl로 만든 FAISS 인덱스
@@ -65,6 +69,9 @@ tests/
   test_policy_retriever.py
   test_news_retriever.py
   test_transaction_cleaner.py
+  test_transaction_collector.py
+  test_news_cleaner.py
+  test_news_collector.py
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.
