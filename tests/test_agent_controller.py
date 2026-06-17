@@ -1,4 +1,5 @@
 from src.agents.controller import analyze_with_agent
+from src.agents.controller import _build_region_year_summary
 from src.agents.task_planner import (
     TASK_FORECAST,
     TASK_POLICY_IMPACT,
@@ -112,3 +113,40 @@ def test_agent_forecast_uses_latest_available_year(monkeypatch):
     assert result["parsed_query"]["task_type"] == TASK_FORECAST
     assert result["market_summary"]["base_year"] == 2025
     assert result["market_summary"]["price_summary"]["price_change_rate"] == 10.0
+
+
+# 연간 변화율은 초반/후반 ㎡당 가격 기준으로 계산 검증
+def test_build_region_year_summary_uses_price_per_m2_windows(monkeypatch):
+    transactions = []
+    for month, price_per_m2 in (
+        ("01", 10_000_000),
+        ("02", 11_000_000),
+        ("03", 12_000_000),
+        ("10", 13_000_000),
+        ("11", 14_000_000),
+        ("12", 15_000_000),
+    ):
+        for index in range(2):
+            transactions.append(
+                {
+                    "transaction_id": f"tx_{month}_{index}",
+                    "region_code": "11680",
+                    "sido": "서울",
+                    "sigungu": "강남구",
+                    "dong": "대치동",
+                    "apartment_name": "테스트",
+                    "contract_date": f"2026-{month}-01",
+                    "price": price_per_m2 * 50,
+                    "area_m2": 50.0,
+                    "floor": 5,
+                    "built_year": 2010,
+                    "transaction_type": "매매",
+                }
+            )
+
+    monkeypatch.setattr("src.agents.controller.retrieve_or_collect_transactions", lambda **kwargs: transactions)
+
+    summary = _build_region_year_summary("강남구", 2026, {"transaction_type": "sale", "region": "강남구"})
+
+    assert summary["comparison_basis"] == "초반 3개월 평균 ㎡당 가격 대비 후반 3개월 평균 ㎡당 가격"
+    assert summary["price_change_rate"] == 27.27

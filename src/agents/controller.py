@@ -127,17 +127,24 @@ def _build_region_year_summary(region: str, acc_year: int, parsed_query: dict[st
     )
     monthly_metrics = calculate_monthly_metrics(transactions)
     region_metrics = [metric for metric in monthly_metrics if metric["region"] == region]
-    first_metric = region_metrics[0] if region_metrics else {}
-    last_metric = region_metrics[-1] if region_metrics else {}
+    comparable_metrics = _filter_comparable_monthly_metrics(region_metrics)
+    before_metrics, after_metrics = _split_comparison_windows(comparable_metrics)
+    before_avg_price_per_m2 = _safe_average([metric["price_per_m2"] for metric in before_metrics])
+    after_avg_price_per_m2 = _safe_average([metric["price_per_m2"] for metric in after_metrics])
+    price_change_rate = _calculate_change_rate(after_avg_price_per_m2, before_avg_price_per_m2)
 
     return {
         "region": region,
         "acc_year": acc_year,
-        "first_month": first_metric.get("month"),
-        "last_month": last_metric.get("month"),
-        "first_avg_price": first_metric.get("avg_price"),
-        "last_avg_price": last_metric.get("avg_price"),
-        "price_change_rate": _calculate_change_rate(last_metric.get("avg_price"), first_metric.get("avg_price")),
+        "first_month": before_metrics[0]["month"] if before_metrics else None,
+        "last_month": after_metrics[-1]["month"] if after_metrics else None,
+        "first_avg_price": _safe_average([metric["avg_price"] for metric in before_metrics]),
+        "last_avg_price": _safe_average([metric["avg_price"] for metric in after_metrics]),
+        "first_price_per_m2": before_avg_price_per_m2,
+        "last_price_per_m2": after_avg_price_per_m2,
+        "price_change_rate": price_change_rate,
+        "price_change_warning": _build_price_change_warning(price_change_rate, len(comparable_metrics)),
+        "comparison_basis": "초반 3개월 평균 ㎡당 가격 대비 후반 3개월 평균 ㎡당 가격",
         "total_transaction_count": sum(int(metric["transaction_count"]) for metric in region_metrics),
         "monthly_metrics": region_metrics,
     }
@@ -239,7 +246,9 @@ def _format_price_cause_answer(
             f"- 지역/기간: {region} / {plan.acc_year}",
             "",
             "[결론 요약]",
-            f"- {region}의 연초 대비 가격 변화율은 {_format_percent(price_summary.get('price_change_rate'))}입니다.",
+            f"- {region}의 비교 기준 가격 변화율은 {_format_percent(price_summary.get('price_change_rate'))}입니다.",
+            f"- 비교 기준: {price_summary.get('comparison_basis') or '미확인'}",
+            _format_warning(price_summary.get("price_change_warning")),
             "- 상승 원인은 정책, 뉴스 반응, 거래 데이터가 동시에 뒷받침하는 범위에서만 해석해야 합니다.",
             "",
             "[정책 근거]",
@@ -340,11 +349,27 @@ def _format_single_region_summary(summary: dict[str, Any]) -> str:
         return "- 계산 가능한 시세 데이터 없음"
     return (
         f"- {summary.get('region')}: {summary.get('first_month') or '미확인'} "
-        f"{_format_number(summary.get('first_avg_price'))} → "
-        f"{summary.get('last_month') or '미확인'} {_format_number(summary.get('last_avg_price'))}, "
+        f"㎡당 {_format_number(summary.get('first_price_per_m2'))} → "
+        f"{summary.get('last_month') or '미확인'} ㎡당 {_format_number(summary.get('last_price_per_m2'))}, "
         f"변화율 {_format_percent(summary.get('price_change_rate'))}, "
         f"거래건수 {_format_number(summary.get('total_transaction_count'))}"
     )
+
+
+# 가격 변화율 경고 문구 생성
+def _build_price_change_warning(price_change_rate: float | None, comparable_month_count: int) -> str | None:
+    if comparable_month_count < 6:
+        return "비교 가능한 월 데이터가 6개월 미만이라 변화율 신뢰도가 낮습니다."
+    if price_change_rate is not None and abs(price_change_rate) >= 30:
+        return "변화율이 비정상적으로 커서 표본 구성, 면적, 거래유형 혼입 여부 확인이 필요합니다."
+    return None
+
+
+# 경고 문구 문자열 변환
+def _format_warning(value: str | None) -> str:
+    if not value:
+        return "- 데이터 품질 경고: 없음"
+    return f"- 데이터 품질 경고: {value}"
 
 
 # 정책 목록 문자열 생성
@@ -406,6 +431,32 @@ def _calculate_change_rate(current: Any, previous: Any) -> float | None:
     if current is None or previous is None or float(previous) == 0:
         return None
     return round(((float(current) - float(previous)) / float(previous)) * 100, 2)
+
+
+# 비교 가능한 월별 지표만 조회
+def _filter_comparable_monthly_metrics(monthly_metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        metric
+        for metric in monthly_metrics
+        if metric.get("price_per_m2") is not None
+    ]
+
+
+# 비교 구간 분리
+def _split_comparison_windows(monthly_metrics: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if len(monthly_metrics) >= 6:
+        return monthly_metrics[:3], monthly_metrics[-3:]
+    if len(monthly_metrics) >= 2:
+        return [monthly_metrics[0]], [monthly_metrics[-1]]
+    return monthly_metrics, []
+
+
+# 평균값 안전 계산
+def _safe_average(values: list[Any]) -> float | None:
+    numeric_values = [float(value) for value in values if value is not None]
+    if not numeric_values:
+        return None
+    return sum(numeric_values) / len(numeric_values)
 
 
 # ID 기준 중복 제거
