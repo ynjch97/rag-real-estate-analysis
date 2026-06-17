@@ -29,18 +29,15 @@
 ## 3. 데이터 수집
 
 ### 3-1. 정책 데이터
-- 국토교통부
-  - https://www.molit.go.kr/USR/NEWS/m_71/lst.jsp
-  - 대출 규제, 공급 정책, 재건축 완화, 세제 변화 등 핵심 정책 이벤트 추적
-  - 수집 방식 : HTML 크롤링, 키워드 NLP 태깅
-  - 수집 주기 : 주 1회
+- 정책브리핑 > 정책뉴스
+  - https://www.korea.kr/news/policyNewsList.do?smenu=EDS01
+  - 경제 관련 보도자료 수집
+  - 수집 방식 : HTML 크롤링
   - 수집 데이터 : 보도자료 제목, 발표 일자, 정책 키워드(대출 규제/공급 정책/세금 정책/청약 제도/재건축/재개발), 지역 키워드, 정책 시행일 등
-- 한국은행
-  - https://www.bok.or.kr/portal/main/main.do
-  - 기준 금리, 대출 규제, DSR/LTV 정책, 유동성 공급
+- 한국은행 경제 통계 시스템(ECOS)
+  - https://ecos.bok.or.kr/api/#/DevGuide/DevSpeciflcation/OA-1030
   - 수집 방식 : Open API로 정형 데이터 수집
-  - 수집 주기 : 월 1회 + 금융통화위원회 회의 익일 (연 8회)
-  - 수집 데이터 : 기준금리, 금리 인상/인하 여부 등
+  - 수집 데이터 : 금리 > 예금은행 가중평균금리 > 대출금리 > 예금은행 대출금리(신규취급액 기준/잔액 기준)
 
 ### 3-2. 뉴스 데이터
 - 네이버 뉴스
@@ -50,18 +47,16 @@
   - 경제 뉴스 위주의 수집 (한국경제, 매일경제, 서울경제, 이데일리, 연합뉴스)
   - "전세 대란 우려" 등의 긍정/부정 표현 빈도 파악이 중요
   - 수집 방식 : 뉴스 API JSON 타입으로 수집
-  - 수집 주기 : 일 1회
   - 수집 데이터 : 기사 제목, 본문, 작성 일시, 지역 키워드, 정책 키워드, 감성 분석 점수
 
 ### 3-3. 시세 데이터
-- 국토교통부 실거래가 공개시스템 : https://rt.molit.go.kr/
-  - 정책 발표 전후 가격 변화, 특정 지역 거래량 급증, 신고가 발생 빈도 등을 파악 가능
-- 공공데이터포털 Open API 국토교통부_아파트 매매 실거래가 자료 : https://www.data.go.kr/data/15126469/openapi.do
-- 공공데이터포털 Open API 서울특별시_부동산 실거래가 정보 : https://www.data.go.kr/data/15052419/fileData.do
-  - 서울시 부동산 실거래가 정보 : https://data.seoul.go.kr/dataList/OA-21275/S/1/datasetView.do ***(채택)***
+- 정책 발표 전후 가격 변화, 특정 지역 거래량 급증, 신고가 발생 빈도 등을 파악 가능
+- 서울특별시 부동산 실거래가 API : https://data.seoul.go.kr/dataList/OA-21275/S/1/datasetView.do
+  - 공공데이터포털 Open API 국토교통부_아파트 매매 실거래가 자료 : https://www.data.go.kr/data/15126469/openapi.do
+  - 공공데이터포털 Open API 서울특별시_부동산 실거래가 정보 : https://www.data.go.kr/data/15052419/fileData.do
+    - 서울시 부동산 실거래가 정보 : https://data.seoul.go.kr/dataList/OA-21275/S/1/datasetView.do ***(채택)***
 - 데이터 수집
   - 수집 방식 : Open API로 데이터 수집
-  - 수집 주기 : 월 1회
   - 수집 데이터 : 거래 금액, 거래 일자, 법정동, 아파트명, 전용면적, 층수, 건축년도, 거래 유형, 거래량
 
 ## 4. 데이터 전처리 및 청킹 전략
@@ -471,7 +466,6 @@ python -m src.embeddings.build_index
 - `query_analyzer.py`
 ``` python
 # "이번 금리 인상이 성동구 아파트 매매가에 미친 영향을 알려줘"
-# 이와 같은 입력을 아래 구조로 바꿈 (현재는 LLM 쓰지 말고 규칙으로)
 {
     "region": "성동구",
     "event_keyword": "금리 인상",
@@ -534,7 +528,7 @@ tests\test_query_analyzer.py ..... [100%]
 
 ### 10-5. 정책 영향 분석 워크플로우
 - `context_builder.py` : 7-3. 컨텍스트 구성 전략 형식으로 정책/뉴스/시세 컨텍스트 구성
-- `answer_generator.py` : 현재는 OpenAI 호출 없이 템플릿 기반 답변 생성
+- `answer_generator.py` : OpenAI 호출 없이 템플릿 기반 답변 생성 -> OpenAI 적용
 - `market_impact_workflow.py` : 전체 흐름을 하나로 묶는 워크플로우 파일 / 전체 실행 순서를 담당
   - 질문 분석 (`query_analyzer.py`) + 정책/뉴스 인덱스 (`build_index.py`, `vector_store.py`) + 시세 조회/집계 (`price_retriever.py`, `market_analyzer.py`)
 - 현재까지는 FAISS 검색이 아니라 샘플 JSONL 기반 규칙 매칭
