@@ -7,9 +7,10 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 from src.collectors.ecos_collector import fetch_ecos_interest_rate_items_raw, has_ecos_api_key, save_raw_ecos_items
+from src.collectors.policy_collector import fetch_korea_policy_news_raw, save_raw_policy_news
 from src.data.loaders import load_jsonl
 from src.embeddings.vector_store import load_vector_store
-from src.preprocessing.policy_cleaner import normalize_ecos_interest_rate_items, save_policies
+from src.preprocessing.policy_cleaner import normalize_ecos_interest_rate_items, normalize_korea_policy_news_items, save_policies
 from src.retrieval.hybrid_search import rerank_hybrid_results
 
 
@@ -35,6 +36,14 @@ def retrieve_policy_documents(
     if use_live_api and _is_interest_rate_query(parsed_query) and has_ecos_api_key():
         try:
             live_policies = _retrieve_policy_documents_from_ecos(top_k=top_k)
+            if live_policies:
+                return live_policies
+        except Exception:
+            pass
+
+    if use_live_api and not _is_interest_rate_query(parsed_query):
+        try:
+            live_policies = _retrieve_policy_documents_from_korea_policy_briefing(parsed_query, query=query, top_k=top_k)
             if live_policies:
                 return live_policies
         except Exception:
@@ -77,6 +86,30 @@ def _retrieve_policy_documents_from_ecos(top_k: int = 3) -> list[dict[str, Any]]
     save_policies(DEFAULT_PROCESSED_POLICY_DIR / "policies_ecos_interest_rate.jsonl", policies)
 
     return policies[:top_k]
+
+
+# 정책브리핑 기반 정책뉴스 조회
+def _retrieve_policy_documents_from_korea_policy_briefing(
+    parsed_query: dict[str, Any],
+    query: str | None = None,
+    top_k: int = 3,
+) -> list[dict[str, Any]]:
+    raw_items = fetch_korea_policy_news_raw(max_items=max(top_k * 4, 10))
+    policies = normalize_korea_policy_news_items(raw_items)
+    query_text = query or _build_policy_query(parsed_query)
+    ranked_policies = rerank_hybrid_results(
+        query=query_text,
+        items=policies,
+        parsed_query=parsed_query,
+        text_fields=("title", "summary", "content", "policy_type", "keywords", "region_tags"),
+        id_field="policy_id",
+        top_k=top_k,
+    )
+
+    save_raw_policy_news(DEFAULT_RAW_POLICY_DIR / "korea_policy_news.jsonl", raw_items)
+    save_policies(DEFAULT_PROCESSED_POLICY_DIR / "policies_korea_policy_news.jsonl", ranked_policies)
+
+    return ranked_policies
 
 
 # 질문 분석 결과 기반 정책 검색어 생성

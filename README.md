@@ -637,6 +637,8 @@ python -c "from src.workflows.market_impact_workflow import analyze_market_impac
 ```
 
 ### 10-10. 정책 데이터 수집
+
+#### 금리 데이터
 - 한국은행 경제 통계 시스템(ECOS)
   - API 사용 : https://ecos.bok.or.kr/api/#/DevGuide/DevSpeciflcation/OA-1030
   - 통계 코드 검색 : https://ecos.bok.or.kr/api/#/DevGuide/StatisticalCodeSearch
@@ -649,6 +651,21 @@ python -c "from src.workflows.market_impact_workflow import analyze_market_impac
 - 테스트 실행
 ``` bash
 python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('이번 금리 정책으로 인한 마포구 집값 영향 알려줘.'); print(result['parsed_query']); print(result['policies'][:2])"
+```
+
+#### 정책 데이터
+- 정책브리핑 > 정책뉴스 크롤링
+  - https://www.korea.kr/news/policyNewsList.do?smenu=EDS01
+  - 목록 페이지에서 `policyNewsView.do?newsId=...` 상세 링크 추출
+  - 상세 페이지에서 제목, 부제, 발행일, 부처, 본문 텍스트 추출
+- `policy_collector.py` : 정책브리핑 > 정책뉴스 원천 데이터 저장
+- `policy_cleaner.py` : 정책브리핑 > 정책뉴스 정규화
+- `policy_retriever.py` 수정
+  - 금리 질문은 ECOS API 우선 사용 / 정책 질문은 정책브리핑 우선 수집
+  - 수집 결과를 Hybrid Search로 재정렬 후 정책 근거로 사용
+- 테스트 실행
+``` bash
+python -m pytest tests/test_policy_collector.py tests/test_policy_cleaner.py tests/test_policy_retriever.py -v
 ```
 
 ### 10-11. 검색 품질을 Hybrid Search로 개선

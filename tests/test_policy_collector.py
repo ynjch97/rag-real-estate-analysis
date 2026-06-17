@@ -1,0 +1,99 @@
+import json
+
+from src.collectors.policy_collector import (
+    build_korea_policy_news_list_url,
+    extract_policy_news_links,
+    fetch_korea_policy_news_raw,
+    parse_korea_policy_news_detail,
+    save_raw_policy_news,
+)
+
+
+class FakeResponse:
+    def __init__(self, text: str):
+        self.text = text
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def read(self):
+        return self.text.encode("utf-8")
+
+
+# 정책브리핑 정책뉴스 목록 URL 생성 검증
+def test_builds_korea_policy_news_list_url():
+    url = build_korea_policy_news_list_url(page=2)
+
+    assert url == "https://www.korea.kr/news/policyNewsList.do?smenu=EDS01&pageIndex=2"
+
+
+# 정책브리핑 정책뉴스 상세 링크 추출 검증
+def test_extracts_policy_news_links():
+    html = """
+    <a href="/news/policyNewsView.do?newsId=148964990">정책뉴스 A</a>
+    <a href="https://www.korea.kr/news/policyNewsView.do?newsId=148964991">정책뉴스 B</a>
+    <a href="/news/other.do?newsId=1">무시</a>
+    """
+
+    links = extract_policy_news_links(html)
+
+    assert links == [
+        "https://www.korea.kr/news/policyNewsView.do?newsId=148964990",
+        "https://www.korea.kr/news/policyNewsView.do?newsId=148964991",
+    ]
+
+
+# 정책브리핑 정책뉴스 상세 HTML 파싱 검증
+def test_parses_korea_policy_news_detail():
+    html = """
+    <html>
+      <head><title>주택 공급 확대 - 정책뉴스</title></head>
+      <body>
+        <h1>주택 공급 확대 방안 발표</h1>
+        <h2>국토교통부, 도심 공급 기반 강화</h2>
+        <p>2026.05.22 국토교통부</p>
+        <p>정부는 주택 공급과 재건축 제도 개선을 추진한다.</p>
+      </body>
+    </html>
+    """
+
+    row = parse_korea_policy_news_detail(html, "https://www.korea.kr/news/policyNewsView.do?newsId=1")
+
+    assert row["title"] == "주택 공급 확대 방안 발표"
+    assert row["subtitle"] == "국토교통부, 도심 공급 기반 강화"
+    assert row["published_date"] == "2026-05-22"
+    assert row["ministry"] == "국토교통부"
+    assert "주택 공급" in row["content"]
+
+
+# 정책브리핑 정책뉴스 원천 데이터 수집 검증
+def test_fetches_korea_policy_news_raw_with_fake_opener():
+    list_html = '<a href="/news/policyNewsView.do?newsId=148964990">정책뉴스 A</a>'
+    detail_html = """
+    <h1>대출 규제 개선</h1>
+    <h2>금융위원회, 실수요자 부담 완화</h2>
+    <p>2026.05.22 금융위원회</p>
+    <p>대출 규제와 금융 지원 관련 정책을 발표했다.</p>
+    """
+
+    def fake_opener(request):
+        if "policyNewsList.do" in request.full_url:
+            return FakeResponse(list_html)
+        return FakeResponse(detail_html)
+
+    rows = fetch_korea_policy_news_raw(max_items=1, opener=fake_opener)
+
+    assert len(rows) == 1
+    assert rows[0]["title"] == "대출 규제 개선"
+    assert rows[0]["ministry"] == "금융위원회"
+
+
+# 정책브리핑 원천 데이터 JSONL 저장 검증
+def test_saves_raw_policy_news(tmp_path):
+    output_path = tmp_path / "policy_news.jsonl"
+    save_raw_policy_news(output_path, [{"title": "정책뉴스"}])
+
+    assert output_path.read_text(encoding="utf-8").strip() == json.dumps({"title": "정책뉴스"}, ensure_ascii=False)
