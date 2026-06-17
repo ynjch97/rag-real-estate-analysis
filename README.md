@@ -441,6 +441,9 @@ python -m src.embeddings.build_index
 💾 Policy FAISS index saved to: D:\STUDY\git_ragRealEstateAnalysis\data\indexes\policy_faiss
 💾 News FAISS index saved to: D:\STUDY\git_ragRealEstateAnalysis\data\indexes\news_faiss
 ```
+- FAISS Cosine Similarity 기반 Top-k 검색
+  - 정책/뉴스 문서의 벡터 간 유사도 측정 방식으로 코사인 유사도(Cosine Similarity) 적용
+- 정확한 키워드가 중요한 질의를 충분히 처리하기 어려움 -> BM25 기반 키워드 점수를 함께 사용
 
 ### 10-3. 질문을 구조화하는 규칙 기반 분석기
 - 사용자 질문을 이후 검색/분석 모듈이 쓰기 쉬운 형태로 바꾸는 것
