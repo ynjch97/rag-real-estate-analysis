@@ -20,9 +20,11 @@ src/
   collectors/
     transaction_collector.py # 시세 데이터 원천 데이터 수집
     news_collector.py       # 뉴스 데이터 원천 데이터 수집
+    ecos_collector.py       # 정책 데이터 원천 데이터 수집
   preprocessing/
     transaction_cleaner.py  # 시세 데이터 정규화
     news_cleaner.py         # 뉴스 데이터 정규화
+    policy_cleaner.py       # 정책 데이터 정규화
   embeddings/
     __init__.py
     build_index.py          # 정책/뉴스 JSONL -> FAISS 인덱스 생성
@@ -72,6 +74,8 @@ tests/
   test_transaction_collector.py
   test_news_cleaner.py
   test_news_collector.py
+  test_policy_cleaner.py
+  test_ecos_collector.py
 ```
 
 Place modules near the domain they support instead of creating broad utility files prematurely.

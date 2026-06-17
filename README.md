@@ -565,4 +565,17 @@ python -c "from src.workflows.market_impact_workflow import analyze_market_impac
 python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('금리 인상으로 동작구 아파트 매매에 미친 영향 알려줘'); print(result['parsed_query']); print(result['news'][:2])"
 ```
 
-### 10-10.
+### 10-10. 정책 데이터 수집
+- 한국은행 경제 통계 시스템(ECOS)
+  - API 사용 : https://ecos.bok.or.kr/api/#/DevGuide/DevSpeciflcation/OA-1030
+  - 통계 코드 검색 : https://ecos.bok.or.kr/api/#/DevGuide/StatisticalCodeSearch
+- 금리 > 예금은행 가중평균금리 > 대출금리 > 예금은행 대출금리(신규취급액 기준)
+  - https://ecos.bok.or.kr/api/StatisticItemList/[인증키]/json/kr/1/100/121Y006
+- 금리 > 예금은행 가중평균금리 > 대출금리 > 예금은행 대출금리(잔액 기준)
+  - https://ecos.bok.or.kr/api/StatisticItemList/[인증키]/json/kr/1/100/121Y015
+- `ecos_collector.py` : 정책 데이터 원천 데이터 수집
+- `policy_cleaner.py` : 정책 데이터 정규화
+- 테스트 실행
+``` bash
+python -c "from src.workflows.market_impact_workflow import analyze_market_impact; result = analyze_market_impact('이번 금리 정책으로 인한 마포구 집값 영향 알려줘.'); print(result['parsed_query']); print(result['policies'][:2])"
+```

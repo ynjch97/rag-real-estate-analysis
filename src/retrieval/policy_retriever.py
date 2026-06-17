@@ -6,13 +6,17 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
+from src.collectors.ecos_collector import fetch_ecos_interest_rate_items_raw, has_ecos_api_key, save_raw_ecos_items
 from src.data.loaders import load_jsonl
 from src.embeddings.vector_store import load_vector_store
+from src.preprocessing.policy_cleaner import normalize_ecos_interest_rate_items, save_policies
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_POLICY_INDEX_DIR = PROJECT_ROOT / "data" / "indexes" / "policy_faiss"
 DEFAULT_POLICY_SOURCE = PROJECT_ROOT / "data" / "sample" / "policies.jsonl"
+DEFAULT_RAW_POLICY_DIR = PROJECT_ROOT / "data" / "raw"
+DEFAULT_PROCESSED_POLICY_DIR = PROJECT_ROOT / "data" / "processed"
 
 
 # FAISS 인덱스 기반 관련 정책 검색
@@ -24,7 +28,16 @@ def retrieve_policy_documents(
     embeddings: Embeddings | None = None,
     fallback_path: str | Path = DEFAULT_POLICY_SOURCE,
     use_faiss: bool = True,
+    use_live_api: bool = True,
 ) -> list[dict[str, Any]]:
+    if use_live_api and _is_interest_rate_query(parsed_query) and has_ecos_api_key():
+        try:
+            live_policies = _retrieve_policy_documents_from_ecos(top_k=top_k)
+            if live_policies:
+                return live_policies
+        except Exception:
+            pass
+
     if not use_faiss:
         return _retrieve_policy_documents_from_sample(parsed_query, fallback_path, top_k)
 
@@ -39,6 +52,17 @@ def retrieve_policy_documents(
     policies = [_document_to_policy(document) for document in documents]
     filtered_policies = _filter_policy_documents(policies, parsed_query)
     return (filtered_policies or policies)[:top_k]
+
+
+# ECOS API 기반 금리 정책 근거 조회
+def _retrieve_policy_documents_from_ecos(top_k: int = 3) -> list[dict[str, Any]]:
+    raw_items = fetch_ecos_interest_rate_items_raw()
+    policies = normalize_ecos_interest_rate_items(raw_items)
+
+    save_raw_ecos_items(DEFAULT_RAW_POLICY_DIR / "ecos_interest_rate_items.jsonl", raw_items)
+    save_policies(DEFAULT_PROCESSED_POLICY_DIR / "policies_ecos_interest_rate.jsonl", policies)
+
+    return policies[:top_k]
 
 
 # 질문 분석 결과 기반 정책 검색어 생성
@@ -120,6 +144,13 @@ def _filter_policy_documents(
     ]
 
 
+# 금리 관련 질문 여부 확인
+def _is_interest_rate_query(parsed_query: dict[str, Any]) -> bool:
+    event_keyword = parsed_query.get("event_keyword")
+    policy_type = parsed_query.get("policy_type")
+    return policy_type == "interest_rate" or event_keyword in {"금리", "금리 인상"}
+
+
 # FAISS Document를 정책 dict로 변환
 def _document_to_policy(document: Document) -> dict[str, Any]:
     policy = dict(document.metadata)
@@ -132,7 +163,8 @@ def _document_to_policy(document: Document) -> dict[str, Any]:
 def _matches_region_tag(item: dict[str, Any], region: str | None) -> bool:
     if region is None:
         return True
-    return region in item.get("region_tags", [])
+    region_tags = item.get("region_tags", [])
+    return "전국" in region_tags or region in region_tags
 
 
 # 키워드 포함 여부 확인

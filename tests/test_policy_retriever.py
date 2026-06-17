@@ -42,6 +42,7 @@ def test_retrieves_policy_documents_from_faiss(tmp_path):
         index_dir=index_dir,
         top_k=2,
         embeddings=embeddings,
+        use_live_api=False,
     )
 
     assert len(results) == 1
@@ -56,6 +57,7 @@ def test_retrieves_policy_documents_from_sample_fallback():
         top_k=1,
         embeddings=None,
         use_faiss=False,
+        use_live_api=False,
     )
 
     assert [result["policy_id"] for result in results] == ["policy_001"]
