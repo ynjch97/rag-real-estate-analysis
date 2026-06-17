@@ -67,9 +67,22 @@ def _extract_legal_dong(query: str) -> dict[str, str] | None:
     except FileNotFoundError:
         return None
 
-    for row in sorted(legal_codes, key=lambda value: len(value["dong"]), reverse=True):
-        if row["dong"] in query:
+    matched_rows = [
+        row
+        for row in sorted(legal_codes, key=lambda value: len(value["dong"]), reverse=True)
+        if row["dong"] in query
+    ]
+    if not matched_rows:
+        return None
+
+    for row in matched_rows:
+        if row["sigungu"] in query:
             return row
+
+    matched_dong = matched_rows[0]["dong"]
+    exact_rows = [row for row in matched_rows if row["dong"] == matched_dong]
+    if len(exact_rows) == 1:
+        return exact_rows[0]
 
     return None
 

@@ -25,8 +25,8 @@ def test_retrieves_transactions_by_transaction_type():
 
 
 def test_retrieves_transactions_by_dong():
-    transactions = retrieve_transactions(region="성동구", dong="성수동")
+    transactions = retrieve_transactions(region="성동구", dong="성수동1가")
 
     assert transactions
     assert {transaction["sigungu"] for transaction in transactions} == {"성동구"}
-    assert {transaction["dong"] for transaction in transactions} == {"성수동"}
+    assert {transaction["dong"] for transaction in transactions} == {"성수동1가"}
