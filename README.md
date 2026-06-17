@@ -161,13 +161,38 @@
   - 사용자 질의 -> 임베딩 벡터로 변환 -> 벡터 DB -> 유사도 계산 -> Top-k 문서 추출
 
 ### 6-1. 임베딩 및 벡터 인덱싱
-- [TODO]
+- LangChain의 OpenAIEmbeddings 사용 : 의미적으로 유사한 내용일수록 벡터 공간에서 가까운 위치에 배치
+  - 이를 기반으로 의미 중심의 검색(Semantic Search)을 수행
+- 생성된 벡터는 Vector DB에 저장, FAISS(Facebook AI Similarity Search) 사용
+  - FAISS : 대규모 벡터 데이터에 대한 빠른 유사도 검색을 지원하는 라이브러리
 
 ### 6-2. Retrieval 구조 및 유사도 계산 방식
-- [TODO]
+- 벡터 간 유사도를 측정 : 코사인 유사도(Cosine Similarity) 사용
+- 정확도를 높이기 위해 Hybrid Search(BM25 + Vector Search) 적용
+  - BM25 : 특정 키워드의 출현 빈도를 정밀하게 계산 -> 키워드 기반 정확한 매칭이 가능하도록 함
+  - Vector Search : 의미 기반 유사도 검색이 가능하도록 함
+- 이를 통해 최종 Top-k 문서를 선정, Re-ranking
 
 ### 6-3. 지식 그래프 구성
-- [TODO]
+- 정책/뉴스/시세 데이터를 개별적인 데이터의 집합이 아닌 관계 기반 구조로 표현하기 위해 지식 그래프를 도입
+- 부동산 시장은 정책 → 시장 반응 → 시세 변화로 이어지는 구조
+- 인과 관계를 명시적으로 표현 -> 검색 정확도와 분석력 향상
+- 노드 구성
+``` text
+query   : 사용자 질문 분석 결과
+policy  : 정책 문서 또는 정책뉴스
+news    : 관련 뉴스
+market  : 시세 변화 요약
+```
+- 엣지 구성
+``` text
+query_matches_policy      : 질문과 정책의 키워드/지역 일치
+query_matches_news        : 질문과 뉴스의 키워드/지역 일치
+query_targets_market      : 질문과 시세 요약 연결
+policy_explained_by_news  : 정책 키워드와 뉴스 내용 연결
+news_reflects_market      : 뉴스 시장신호와 시세 요약 연결
+policy_related_to_market  : 정책과 시세 요약 연결
+```
 
 ## 7. Agent 기반 의사결정 지원 설계
 
@@ -717,22 +742,6 @@ python -c "from src.agents.task_planner import plan_agent_task; print(plan_agent
 ### 10-14. 지식 그래프 구조 반영
 - 정책, 뉴스, 시세 데이터를 노드와 엣지로 연결하는 지식 그래프 구조 추가
 - 단순히 `정책 → 뉴스 → 시세` 텍스트를 나열하는 방식이 아니라, 각 데이터 간 관계와 가중치를 구조화
-- 노드 유형
-``` text
-query   : 사용자 질문 분석 결과
-policy  : 정책 문서 또는 정책뉴스
-news    : 관련 뉴스
-market  : 시세 변화 요약
-```
-- 엣지 유형
-``` text
-query_matches_policy      : 질문과 정책의 키워드/지역 일치
-query_matches_news        : 질문과 뉴스의 키워드/지역 일치
-query_targets_market      : 질문과 시세 요약 연결
-policy_explained_by_news  : 정책 키워드와 뉴스 내용 연결
-news_reflects_market      : 뉴스 시장신호와 시세 요약 연결
-policy_related_to_market  : 정책과 시세 요약 연결
-```
 - Context Builder 반영
   - 정책/뉴스/시세 조회
   - Knowledge Graph 생성
