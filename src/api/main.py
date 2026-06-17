@@ -44,6 +44,7 @@ def _to_analyze_response(result: dict[str, Any]) -> AnalyzeResponse:
             news=[news["news_id"] for news in result["news"]],
         ),
         context=result["context"],
+        knowledge_graph=result.get("knowledge_graph", {}),
         agent_plan=result.get("agent_plan", {}),
     )
 

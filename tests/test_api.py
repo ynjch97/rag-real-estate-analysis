@@ -53,6 +53,9 @@ def test_analyze_endpoint(monkeypatch):
     assert "[불확실성 및 추가 확인 필요 사항]" in data["answer"]
     assert "[참고 출처]" in data["answer"]
     assert "[컨텍스트]" not in data["answer"]
+    assert "knowledge_graph" in data
+    assert data["knowledge_graph"]["nodes"]
+    assert data["knowledge_graph"]["edges"]
     assert "agent_plan" in data
 
 

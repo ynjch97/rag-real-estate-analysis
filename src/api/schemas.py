@@ -18,4 +18,5 @@ class AnalyzeResponse(BaseModel):
     market_summary: dict[str, Any]
     sources: Sources
     context: str
+    knowledge_graph: dict[str, Any] = {}
     agent_plan: dict[str, Any] = {}

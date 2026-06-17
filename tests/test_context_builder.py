@@ -49,11 +49,14 @@ def test_builds_context_with_readme_sections():
     assert "[정책 근거]" in context
     assert "[관련 뉴스 요약]" in context
     assert "[시세 변화 데이터]" in context
+    assert "[지식 그래프]" in context
+    assert "[지식 그래프 노드]" in context
+    assert "[지식 그래프 관계]" in context
     assert "- 지역/기간: 성동구 / 전 6개월, 후 6개월" in context
     assert "평균 매매가 변화율" in context
     assert "제공된 정책, 뉴스, 시세 데이터에 없는 내용은 추측하지 않는다." in context
     assert "수치 데이터는 market_summary에 있는 값만 사용한다." in context
-    assert "정책과 시세의 관계는 단정하지 말고, 근거 수준을 함께 설명한다." in context
+    assert "정책과 시세의 관계는 지식 그래프 관계가 있는 범위에서만 설명한다." in context
 
 
 # 관련 자료가 없는 컨텍스트 기본값 검증

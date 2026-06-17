@@ -4,6 +4,7 @@ from typing import Any
 
 from src.analysis.answer_generator import generate_market_impact_answer
 from src.analysis.context_builder import build_market_impact_context
+from src.analysis.knowledge_graph import build_market_knowledge_graph
 from src.prices.market_analyzer import calculate_monthly_metrics, summarize_before_after
 from src.prices.price_retriever import DEFAULT_TRANSACTION_PATH, retrieve_or_collect_transactions
 from src.retrieval.news_retriever import retrieve_news_documents
@@ -45,6 +46,7 @@ def analyze_market_impact(
     )
     if parsed_query.get("dong") is not None:
         market_summary["dong"] = parsed_query["dong"]
+    knowledge_graph = build_market_knowledge_graph(parsed_query, policies, news_items, market_summary)
     context = build_market_impact_context(parsed_query, policies, news_items, market_summary)
     answer = generate_market_impact_answer(parsed_query, policies, news_items, market_summary, context)
 
@@ -56,6 +58,7 @@ def analyze_market_impact(
         "monthly_metrics": monthly_metrics,
         "market_summary": market_summary,
         "context": context,
+        "knowledge_graph": knowledge_graph.to_dict(),
     }
 
 

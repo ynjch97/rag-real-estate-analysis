@@ -115,6 +115,8 @@ def test_agent_forecast_uses_latest_available_year(monkeypatch):
     assert result["parsed_query"]["task_type"] == TASK_FORECAST
     assert result["market_summary"]["base_year"] == 2025
     assert result["market_summary"]["price_summary"]["price_change_rate"] == 10.0
+    assert result["knowledge_graph"]["nodes"]
+    assert result["knowledge_graph"]["edges"]
 
 
 # 연간 변화율은 초반/후반 ㎡당 가격 기준으로 계산 검증

@@ -25,6 +25,9 @@ def test_analyzes_market_impact_end_to_end(monkeypatch):
     assert "[질문 해석]" in result["context"]
     assert "[결론 요약]" in result["context"]
     assert "[정책 근거]" in result["context"]
+    assert "[지식 그래프]" in result["context"]
+    assert result["knowledge_graph"]["nodes"]
+    assert result["knowledge_graph"]["edges"]
 
 
 # 대출 규제 질문의 정책/뉴스 매칭 검증

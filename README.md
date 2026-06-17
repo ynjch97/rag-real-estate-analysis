@@ -365,6 +365,7 @@ src/
     __init__.py
     context_builder.py      # LLM 입력 컨텍스트 구성
     answer_generator.py     # 컨텍스트 기반 최종 답변 생성
+    knowledge_graph.py      # 지식그래프 구성
   workflows/
     __init__.py
     market_impact_workflow.py # 질문 분석 → 정책/뉴스 검색 → 시세 분석 → 컨텍스트 구성 → 답변 생성 워크플로우
@@ -713,3 +714,29 @@ python -c "from src.agents.task_planner import plan_agent_task; print(plan_agent
   - LLM 답변이 필수 섹션을 모두 포함하면 최종 답변으로 사용
   - API 키 없음 또는 호출 실패 시 기존 템플릿 답변으로 fallback
 - OPENAI_MODEL = `gpt-4o-mini`
+
+### 10-14. 지식 그래프 구조 반영
+- 정책, 뉴스, 시세 데이터를 노드와 엣지로 연결하는 지식 그래프 구조 추가
+- 단순히 `정책 → 뉴스 → 시세` 텍스트를 나열하는 방식이 아니라, 각 데이터 간 관계와 가중치를 구조화
+- 노드 유형
+``` text
+query   : 사용자 질문 분석 결과
+policy  : 정책 문서 또는 정책뉴스
+news    : 관련 뉴스
+market  : 시세 변화 요약
+```
+- 엣지 유형
+``` text
+query_matches_policy      : 질문과 정책의 키워드/지역 일치
+query_matches_news        : 질문과 뉴스의 키워드/지역 일치
+query_targets_market      : 질문과 시세 요약 연결
+policy_explained_by_news  : 정책 키워드와 뉴스 내용 연결
+news_reflects_market      : 뉴스 시장신호와 시세 요약 연결
+policy_related_to_market  : 정책과 시세 요약 연결
+```
+- Context Builder 반영
+  - 정책/뉴스/시세 조회
+  - Knowledge Graph 생성
+  - 그래프 가중치 기반 정책/뉴스 재정렬
+  - LLM 입력 컨텍스트에 [지식 그래프] 섹션 추가
+  - LLM은 그래프 관계가 있는 범위에서만 정책-뉴스-시세 관계 해석

@@ -10,6 +10,7 @@ from src.agents.task_planner import (
     plan_agent_task,
 )
 from src.analysis.answer_generator import generate_agent_answer
+from src.analysis.knowledge_graph import build_market_knowledge_graph, format_knowledge_graph_context
 from src.prices.market_analyzer import calculate_monthly_metrics
 from src.prices.price_retriever import retrieve_or_collect_transactions
 from src.retrieval.news_retriever import retrieve_news_documents
@@ -193,6 +194,7 @@ def _build_agent_result(
 ) -> dict[str, Any]:
     parsed_query = dict(plan.parsed_query)
     parsed_query["task_type"] = plan.task_type
+    knowledge_graph = build_market_knowledge_graph(parsed_query, policies, news_items, market_summary)
 
     return {
         "answer": answer,
@@ -202,6 +204,7 @@ def _build_agent_result(
         "monthly_metrics": monthly_metrics,
         "market_summary": market_summary,
         "context": _format_agent_context(plan, policies, news_items, market_summary),
+        "knowledge_graph": knowledge_graph.to_dict(),
         "agent_plan": plan.to_dict(),
     }
 
@@ -326,12 +329,15 @@ def _format_agent_context(
     news_items: list[dict[str, Any]],
     market_summary: dict[str, Any],
 ) -> str:
+    knowledge_graph = build_market_knowledge_graph(plan.parsed_query, policies, news_items, market_summary)
     return "\n\n".join(
         [
             "[Agent Plan]",
             f"- task_type: {plan.task_type}",
             f"- retrieval_steps: {' -> '.join(plan.retrieval_steps)}",
             f"- reasoning_strategy: {plan.reasoning_strategy}",
+            "[지식 그래프]",
+            format_knowledge_graph_context(knowledge_graph),
             "[정책 근거]",
             _format_policies(policies),
             "[관련 뉴스 요약]",

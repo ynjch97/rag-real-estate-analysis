@@ -47,6 +47,7 @@ src/
     __init__.py
     context_builder.py      # LLM 입력 컨텍스트 구성
     answer_generator.py     # 컨텍스트 기반 최종 답변 생성
+    knowledge_graph.py      # 지식그래프 구성
   workflows/
     __init__.py
     market_impact_workflow.py # 질문 분석 → 정책/뉴스 검색 → 시세 분석 → 컨텍스트 구성 → 답변 생성 워크플로우

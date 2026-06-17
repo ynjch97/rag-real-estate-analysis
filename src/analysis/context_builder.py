@@ -1,5 +1,12 @@
 from typing import Any
 
+from src.analysis.knowledge_graph import (
+    build_market_knowledge_graph,
+    format_knowledge_graph_context,
+    rank_news_by_graph,
+    rank_policies_by_graph,
+)
+
 
 # README 7-3 구조 기반 LLM 입력 컨텍스트 구성
 def build_market_impact_context(
@@ -8,6 +15,10 @@ def build_market_impact_context(
     news_items: list[dict[str, Any]],
     market_summary: dict[str, Any],
 ) -> str:
+    knowledge_graph = build_market_knowledge_graph(parsed_query, policies, news_items, market_summary)
+    ranked_policies = rank_policies_by_graph(knowledge_graph, policies)
+    ranked_news_items = rank_news_by_graph(knowledge_graph, news_items)
+
     return "\n\n".join(
         [
             "[질문 해석]",
@@ -15,23 +26,26 @@ def build_market_impact_context(
             "[결론 요약]",
             _format_conclusion(market_summary),
             "[정책 근거]",
-            _format_policies(policies),
+            _format_policies(ranked_policies),
             "[관련 뉴스 요약]",
-            _format_news(news_items),
+            _format_news(ranked_news_items),
             "[시세 변화 데이터]",
             _format_market_summary(market_summary),
+            "[지식 그래프]",
+            format_knowledge_graph_context(knowledge_graph),
             "[정책과 시세의 관계 해석]",
-            "정책 정보, 뉴스 반응, 시세 변화 데이터가 함께 제공된 범위 안에서만 관계를 해석한다.",
+            "지식 그래프의 정책-뉴스-시세 관계와 가중치를 근거로, 제공된 데이터 범위 안에서만 관계를 해석한다.",
             "[불확실성 및 추가 확인 필요 사항]",
             "샘플 데이터 기반 결과이므로 실제 투자 판단에는 최신 실거래가, 정책 원문, 추가 뉴스 확인이 필요하다.",
             "[참고 출처]",
-            _format_sources(policies, news_items),
+            _format_sources(ranked_policies, ranked_news_items),
             "[제약 조건]",
             "\n".join(
                 [
                     "- 제공된 정책, 뉴스, 시세 데이터에 없는 내용은 추측하지 않는다.",
                     "- 수치 데이터는 market_summary에 있는 값만 사용한다.",
-                    "- 정책과 시세의 관계는 단정하지 말고, 근거 수준을 함께 설명한다.",
+                    "- 정책과 시세의 관계는 지식 그래프 관계가 있는 범위에서만 설명한다.",
+                    "- 그래프 관계의 weight는 근거 강도 보조 지표일 뿐 인과관계 확정값으로 해석하지 않는다.",
                 ]
             ),
         ]
